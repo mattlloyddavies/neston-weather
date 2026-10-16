@@ -369,11 +369,10 @@
     </ul>
     <div class="price">£14.99<span>per year · or £1.99/mo · 14-day free trial, cancel anytime</span></div>
     <button class="primary big" data-pro-unlock>Keep Premium</button>
-    <button class="ghost" data-pro-restore>Restore purchase</button>
     <button class="ghost" data-pro-preview>Just preview it (no purchase)</button>
     <button class="ghost" data-pro-lock>Turn off Premium (demo)</button>
     <button class="ghost" data-pro-close>Maybe later</button>
-    <p class="fineprint">Demo unlock on the web. In the iOS / Android app this is a real subscription via the App&nbsp;Store / Google&nbsp;Play.</p>
+    <p class="fineprint">Unlocks in this browser only — no payment is taken.</p>
   </div>
 </div>
 
@@ -421,15 +420,14 @@
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="purchases.js"></script>
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
 const content = $("#content"), alertsEl = $("#alerts"), holidayEl = $("#holiday");
 const REDUCED = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
 // Demo mode: everything unlocked, no paywall UI. Enabled by demo.html or ?demo / #demo.
-// Personal Neston build: everything unlocked, no paywall UI. To bring the paywall back, use:
-// (typeof window!=="undefined" && window.HWD_DEMO===true) || /\bdemo\b/i.test(location.search+" "+location.hash)
+// Personal Neston build: everything unlocked, no paywall UI.
+// Set to /\bdemo\b/i.test(location.search+" "+location.hash) to bring the 14-day-trial paywall back.
 const DEMO = true;
 
 /* ================= persistence ================= */
@@ -480,19 +478,12 @@ function updateProBtn(){ const b=$("#proBtn"); if(!b) return; const pro=isPro();
   b.textContent=pro?"Premium ✓":"Premium";
   b.title=pro?"Premium active":(inTrial()?`Premium trial — ${trialDaysLeft()} days left`:"Premium"); }
 function openPro(){ const m=$("#proModal"); m.classList.toggle("is-pro",isPro()); m.hidden=false; }
-const RC_API_KEY_IOS="";      // RevenueCat public SDK key (Apple) — set for the iOS build
-const RC_API_KEY_ANDROID="";  // RevenueCat public SDK key (Google) — set for the Android build
-function _isNative(){ return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); }
 document.addEventListener("click",e=>{
   if(e.target.closest("[data-pro-open]")) openPro();
   if(e.target.closest("#proBtn")) openPro();
   if(e.target.closest("[data-pro-close]")) $("#proModal").hidden=true;
   if(e.target.closest("[data-pro-preview]")){ setPreview(true); $("#proModal").hidden=true; if(_lastPlace) go(_lastPlace); }
-  if(e.target.closest("[data-pro-unlock]")){
-    if(_isNative() && window.HWDPurchases){ window.HWDPurchases.purchase().then(ok=>{ $("#proModal").hidden=true; updateProBtn(); if(ok&&_lastPlace) go(_lastPlace); }); }
-    else { setPro(true); setPreview(false); $("#proModal").hidden=true; updateProBtn(); if(_lastPlace) go(_lastPlace); } // demo unlock on web
-  }
-  if(e.target.closest("[data-pro-restore]")){ if(window.HWDPurchases) window.HWDPurchases.restore().then(()=>{ $("#proModal").hidden=true; updateProBtn(); if(_lastPlace) go(_lastPlace); }); }
+  if(e.target.closest("[data-pro-unlock]")){ setPro(true); setPreview(false); $("#proModal").hidden=true; updateProBtn(); if(_lastPlace) go(_lastPlace); }
   if(e.target.closest("[data-pro-lock]")){ setPro(false); setPreview(false); $("#proModal").hidden=true; updateProBtn(); if(_lastPlace) go(_lastPlace); }
   if(e.target===$("#proModal")) $("#proModal").hidden=true;
 });
@@ -1146,7 +1137,7 @@ let _lastPlace=null;
 function sportsEnabled(){ try{ return localStorage.getItem("hwd.sports")!=="off"; }catch(e){ return true; } }
 
 async function go(place){
-  savePlace(place); _lastPlace=place; rememberLocation(place); $("#q").value="";
+  savePlace(place); _lastPlace=place; $("#q").value="";
   showMsg('<span class="spin"></span>&nbsp;&nbsp;Reading the clouds over '+esc(place.name||"there")+"…",true);
   alertsEl.hidden=true; alertsEl.innerHTML="";
   const {lat,lon}=place;
@@ -1710,13 +1701,6 @@ async function shareCard(){
   const file=new File([blob],"neston-weather.png",{type:"image/png"});
   const s=_snap||{}, text=(s.place?s.place+": ":"")+(s.tempR!=null?s.tempR+"° "+(s.cond||""):"")+(s.alert?" — ⚠ "+s.alert.event:(s.verdict?" — "+s.verdict:""));
   const url="https://mattlloyddavies.github.io/neston-weather/";
-  const C=window.Capacitor;
-  if(C && C.isNativePlatform && C.isNativePlatform() && C.Plugins && C.Plugins.Share && C.Plugins.Filesystem){
-    try{ const b64=c.toDataURL("image/png").split(",")[1], fn="hwd-"+Date.now()+".png";
-      const w=await C.Plugins.Filesystem.writeFile({path:fn,data:b64,directory:"CACHE"});
-      await C.Plugins.Share.share({title:"Neston Weather Desk",text,url:w.uri}); return;
-    }catch(e){}
-  }
   if(navigator.canShare && navigator.canShare({files:[file]})){
     try{ await navigator.share({files:[file],title:"Neston Weather Desk",text}); return; }
     catch(e){ if(e&&e.name==="AbortError") return; }
@@ -1726,40 +1710,6 @@ async function shareCard(){
   try{ if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(text+" — "+url).catch(()=>{}); }catch(e){}
 }
 document.addEventListener("click",e=>{ if(e.target.closest("[data-share]")) shareCard(); });
-
-/* ================= severe-weather push (native app only) =================
-   On web this is inert. In the Capacitor app it registers for push and tells
-   the backend which locations to watch. Set PUSH_ENDPOINT to your deployed
-   register function (see server/weather-alerts + PUSH.md). */
-const PUSH_ENDPOINT=""; // e.g. "https://us-central1-<project>.cloudfunctions.net/registerDevice"
-let _pushToken=null;
-function savedLocations(){ try{ return JSON.parse(localStorage.getItem("hwd.locs")||"[]"); }catch(e){ return []; } }
-function rememberLocation(p){
-  if(!p||typeof p.lat!=="number") return;
-  try{ const max=isPro()?10:1, l=savedLocations().filter(x=>x.label!==p.label);
-    l.unshift({label:p.label,lat:p.lat,lon:p.lon}); localStorage.setItem("hwd.locs",JSON.stringify(l.slice(0,max))); }catch(e){}
-  if(_pushToken) registerDevice(_pushToken);
-}
-async function registerDevice(token){
-  if(!PUSH_ENDPOINT || !premiumUnlocked()) return;
-  const platform=(window.Capacitor&&window.Capacitor.getPlatform&&window.Capacitor.getPlatform())||"unknown";
-  try{ await fetch(PUSH_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({token,platform,locations:savedLocations()})}); }catch(e){ console.warn("registerDevice",e); }
-}
-async function initPush(){
-  const C=window.Capacitor;
-  if(!C || !C.isNativePlatform || !C.isNativePlatform()) return; // web: no-op
-  const P=C.Plugins||{}, Push=P.PushNotifications, Local=P.LocalNotifications;
-  if(!Push) return;
-  try{
-    let perm=await Push.checkPermissions(); if(perm.receive!=="granted") perm=await Push.requestPermissions();
-    if(perm.receive!=="granted") return;
-    Push.addListener("registration", t=>{ _pushToken=t.value; registerDevice(t.value); });
-    Push.addListener("pushNotificationReceived", n=>{ // show while app is foregrounded
-      if(Local) Local.schedule({notifications:[{id:Date.now()%100000,title:n.title||"Weather alert",body:n.body||""}]}); });
-    await Push.register();
-  }catch(e){ console.warn("initPush",e); }
-}
 
 /* ================= stat tiles + temperature trend chart ================= */
 function tileHTML(icon,label,value,sub,color,lead){
@@ -1838,7 +1788,8 @@ function initTrend(){
 window.addEventListener("resize",()=>{ if(_trend && document.getElementById("trend")) drawTrend(); });
 
 /* ================= radar & weather maps ================= */
-let _map=null,_base=null,_overlay=null,_marker=null,_frames=[],_sat=[],_pastCount=0,_frameIdx=0,_playing=false,_playTimer=null,_curLayer="precip",_windT=null;
+let _map=null,_base=null,_overlay=null,_marker=null,_frames=[],_pastCount=0,_frameIdx=0,_playing=false,_playTimer=null,_curLayer="precip",_gridT=null;
+const MAP_ZOOM=9, RADAR_NATIVE_MAX=7; // RainViewer free tiles stop at z7; Leaflet upscales them beyond that
 function isDarkTheme(){ const r=document.documentElement.getAttribute("data-theme");
   return r==="dark"||(!r&&window.matchMedia("(prefers-color-scheme:dark)").matches); }
 function setBase(){
@@ -1854,15 +1805,14 @@ async function loadRadarFrames(){
     const past=(d.radar&&d.radar.past)||[], now=(d.radar&&d.radar.nowcast)||[];
     _pastCount=past.length;
     _frames=past.concat(now).map(f=>({time:f.time,url:`${host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`}));
-    _sat=((d.satellite&&d.satellite.infrared)||[]).map(f=>({time:f.time,url:`${host}${f.path}/256/{z}/{x}/{y}/0/0_0.png`}));
     _frameIdx=Math.max(0,_pastCount-1);
-  }catch(e){ _frames=[]; _sat=[]; }
+  }catch(e){ _frames=[]; }
 }
 function showFrame(i){
   if(!_frames.length) return;
   _frameIdx=((i%_frames.length)+_frames.length)%_frames.length;
   if(_overlay) _map.removeLayer(_overlay);
-  _overlay=window.L.tileLayer(_frames[_frameIdx].url,{opacity:0.78,maxZoom:12,zIndex:400}).addTo(_map);
+  _overlay=window.L.tileLayer(_frames[_frameIdx].url,{opacity:0.78,maxNativeZoom:RADAR_NATIVE_MAX,maxZoom:13,zIndex:400}).addTo(_map);
   const t=new Date(_frames[_frameIdx].time*1000), lbl=$("#timeLabel");
   if(lbl) lbl.textContent=t.toLocaleTimeString("en-GB", {hour:"2-digit",minute:"2-digit"})+(_frameIdx>=_pastCount?" ·fcst":"");
   const sl=$("#timeline"); if(sl){ sl.max=_frames.length-1; sl.value=_frameIdx; }
@@ -1876,12 +1826,9 @@ function selectLayer(kind){
   if(_overlay){ _map.removeLayer(_overlay); _overlay=null; }
   const bottom=$("#radarBottom"), note=$("#mapNote");
   if(kind==="precip"){ if(bottom) bottom.style.display="";
-    if(_frames.length){ showFrame(_frameIdx); note.textContent="Precipitation radar · RainViewer"; }
+    if(_frames.length){ showFrame(_frameIdx); note.textContent="Precipitation radar · RainViewer (sharpest zoomed out; blurs as you zoom in)"; }
     else note.textContent="Radar unavailable right now.";
-  } else if(kind==="clouds"){ if(bottom) bottom.style.display="none";
-    const f=_sat.length?_sat[_sat.length-1]:null;
-    if(f){ _overlay=window.L.tileLayer(f.url,{opacity:0.68,maxZoom:12,zIndex:400}).addTo(_map); note.textContent="Cloud cover · infrared satellite (RainViewer)"; }
-    else note.textContent="Cloud layer unavailable right now.";
+  } else if(kind==="clouds"){ if(bottom) bottom.style.display="none"; cloudLayer();
   } else { if(bottom) bottom.style.display="none"; windLayer(); }
 }
 function windColor(ms){ // speed in m/s
@@ -1911,12 +1858,31 @@ async function windLayer(){
   _overlay=grp.addTo(_map);
   note.textContent="Wind · arrows point downwind, color = speed (Open-Meteo)";
 }
-function scheduleWindRefresh(){ if(_curLayer!=="wind"||!_map) return; clearTimeout(_windT); _windT=setTimeout(()=>{ if(_curLayer==="wind") windLayer(); },500); }
+async function cloudLayer(){
+  const note=$("#mapNote"); note.textContent="Loading cloud cover…";
+  const bs=_map.getBounds(), cols=14, rows=10, n=bs.getNorth(), s=bs.getSouth(), w=bs.getWest(), e=bs.getEast();
+  const lats=[],lons=[];
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){ lats.push((s+(n-s)*(r+0.5)/rows).toFixed(3)); lons.push((w+(e-w)*(c+0.5)/cols).toFixed(3)); }
+  let data;
+  try{ data=await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${lats.join(",")}&longitude=${lons.join(",")}&current=cloud_cover&timezone=UTC`); }
+  catch(err){ note.textContent="Cloud data unavailable right now."; return; }
+  if(_curLayer!=="clouds") return; // user switched away while loading
+  const arr=Array.isArray(data)?data:[data], grp=window.L.layerGroup(), dy=(n-s)/rows/2, dx=(e-w)/cols/2;
+  arr.forEach((d,i)=>{ const cc=d&&d.current&&d.current.cloud_cover; if(cc==null||cc<5) return;
+    const lat=+lats[i], lon=+lons[i];
+    window.L.rectangle([[lat-dy,lon-dx],[lat+dy,lon+dx]],{stroke:false,fillColor:"#5d6b7a",fillOpacity:0.08+0.55*(cc/100),interactive:false}).addTo(grp);
+  });
+  if(_overlay) _map.removeLayer(_overlay);
+  _overlay=grp.addTo(_map);
+  note.textContent="Cloud cover now · darker = cloudier (Open-Meteo model, not satellite)";
+}
+function scheduleGridRefresh(){ if(!_map||(_curLayer!=="wind"&&_curLayer!=="clouds")) return; clearTimeout(_gridT);
+  _gridT=setTimeout(()=>{ if(_curLayer==="wind") windLayer(); else if(_curLayer==="clouds") cloudLayer(); },500); }
 async function openRadar(){
   if(!window.L){ $("#mapNote").textContent="Map library didn't load — check your connection."; return; }
-  if(!_map){ _map=window.L.map("map",{zoomControl:true}).setView([53.29,-3.06],8); setBase(); _map.on("moveend zoomend",scheduleWindRefresh); }
+  if(!_map){ _map=window.L.map("map",{zoomControl:true,minZoom:4,maxZoom:13}).setView([53.29,-3.06],MAP_ZOOM); setBase(); _map.on("moveend zoomend",scheduleGridRefresh); }
   const p=_lastPlace||{lat:53.2911,lon:-3.0647};
-  _map.setView([p.lat,p.lon],8);
+  _map.setView([p.lat,p.lon],MAP_ZOOM);
   if(!_marker) _marker=window.L.circleMarker([p.lat,p.lon],{radius:6,color:"#fff",weight:2,fillColor:"#1f6f8b",fillOpacity:1});
   _marker.setLatLng([p.lat,p.lon]).addTo(_map);
   setTimeout(()=>_map.invalidateSize(),80);
@@ -1925,7 +1891,7 @@ async function openRadar(){
     const base=k==="precip"?"Precip":(k==="clouds"?"Clouds":"Wind");
     b.textContent=(lock&&k!=="precip")?base+" 🔒":base; });
   if(lock && _curLayer!=="precip") _curLayer="precip";
-  if(!_frames.length && !_sat.length) await loadRadarFrames();
+  if(!_frames.length) await loadRadarFrames();
   selectLayer(_curLayer);
 }
 (function(){
@@ -1933,16 +1899,12 @@ async function openRadar(){
   rp.querySelectorAll("[data-layer]").forEach(b=>b.addEventListener("click",()=>selectLayer(b.dataset.layer)));
   const pb=$("#playBtn"); if(pb) pb.addEventListener("click",()=>{ _playing?stopPlay():playRadar(); });
   const sl=$("#timeline"); if(sl) sl.addEventListener("input",()=>{ stopPlay(); showFrame(+sl.value); });
-  const rc=$("#recenterBtn"); if(rc) rc.addEventListener("click",()=>{ const p=_lastPlace||{lat:53.2911,lon:-3.0647}; if(_map) _map.setView([p.lat,p.lon],8); });
+  const rc=$("#recenterBtn"); if(rc) rc.addEventListener("click",()=>{ const p=_lastPlace||{lat:53.2911,lon:-3.0647}; if(_map) _map.setView([p.lat,p.lon],MAP_ZOOM); });
 })();
 
 /* ================= boot ================= */
 (function(){
   if(DEMO){ const pb=$("#proBtn"); if(pb) pb.style.display="none"; }
-  window.addEventListener("hwd-entitlement", ()=>{ updateProBtn(); if(_lastPlace) go(_lastPlace); });
-  if(_isNative() && window.HWDPurchases){ const plat=window.Capacitor.getPlatform();
-    const key=plat==="ios"?RC_API_KEY_IOS:RC_API_KEY_ANDROID; if(key) window.HWDPurchases.configure(key); }
-  initPush();
   firstSeen();      // start the 14-day reverse trial on first visit
   updateProBtn();
   const saved=loadPlace();
