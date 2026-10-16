@@ -202,7 +202,8 @@
   #cookCard{position:relative;min-height:600px}
   #cookCard>.card{position:absolute;inset:0;overflow-y:auto;scrollbar-gutter:stable}
   .dish .fam{font-size:.78rem;color:var(--accent)}
-  .cookout .stack{display:grid;gap:14px}
+  .cookout .stack{display:grid;gap:14px;min-width:0}
+  .cookout .stack>*{min-width:0}
   @media (max-width:760px){.cookout{grid-template-columns:minmax(0,1fr)}#cookCard{min-height:0}#cookCard>.card{position:static;height:640px}}
   .dish{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 18px;padding:14px 0;border-top:1px solid var(--line)}
   .dish:first-of-type{border-top:0;padding-top:6px}
@@ -215,7 +216,9 @@
   .kitlist{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:9px}
   .kitlist li{display:flex;gap:10px;align-items:baseline}
   .kitlist .ks{flex:0 0 1.4em;text-align:center}
-  .kitlist small{display:block;color:var(--ink-soft);font-size:.8rem}
+  .kitlist small{display:block;color:var(--ink-soft);font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .kitlist li>div{min-width:0;flex:1}
+  #kitCard>.card{height:500px;overflow-y:auto}
   .cooks{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:12px}
   .cooks b{font-family:var(--disp)}
   .cooks .on,.dish .on{font-size:.78rem;color:var(--ink-soft);margin-top:2px}
@@ -723,11 +726,11 @@ function kitStatus(c){
   else set("blackstone","go","Calm enough for the flat top");
   if(c.gust>=35) set("clementi","maybe","Gusty — flames will lick out of the mouth");
   else set("clementi","go","Ready to roar");
-  if(!c.openHours) set("kadai","no","No dry, calm spell left today");
+  if(!c.openHours) set("kadai","no",c.wholeDay?"No dry, calm spell that day":"No dry, calm spell left today");
   else if(c.wind>=20) set("kadai","no","Too windy — sparks everywhere");
   else if(c.wind>=12) set("kadai","maybe","Breezy — keep the fire small");
   else set("kadai","go","Dry and calm — light it up");
-  if(!c.openHours) set("kettle","no","No dry spell left today");
+  if(!c.openHours) set("kettle","no",c.wholeDay?"No dry spell that day":"No dry spell left today");
   else if(c.wind>=25) set("kettle","maybe","Windy — vents get twitchy");
   else set("kettle","go","Good to go");
   return st;
@@ -914,25 +917,26 @@ function cookoutCards(b){
     <div class="verdict ${b.vc}">${esc(b.label)}</div>
     <p>${b.why}</p>
     <p style="margin-top:8px">${b.window?`<b>Open-air window (Kadai, kettle):</b> ${b.window}`:`No dry open-air window left today, so it's covered kit only.`}</p></div>`;
-  const kit=`<div class="card"><h2>Your kit today</h2>
-    <ul class="kitlist">${Object.keys(KIT).map(k=>{ const st=p.kit[k];
-      return `<li><span class="ks">${st.ok==="go"?"✅":st.ok==="maybe"?"⚠️":"❌"}</span><div><b>${KIT[k].e} ${KIT[k].name}</b><small>${esc(st.note)}</small></div></li>`; }).join("")}</ul>
-    <p class="disclaim">Traeger, Blackstone and Clementi live under the roof, so rain doesn't bench them, but storms and wind through the open sides do. The Kadai and kettle need a dry, calm window.</p></div>`;
   const week=`<div class="card"><h2>The week ahead</h2>
     <div class="factors" id="weekDays">${b.week.days.map(x=>`<button type="button" class="factor daybtn${x.i===0?" sel":""}" data-day="${x.i}" title="Plan ${x.day}: ${x.hi}°, ${x.pop}% rain">${x.dow} ${x.mark} ${x.hi}°</button>`).join("")}</div>
     <p style="margin-top:8px">${b.week.pick}</p>
     <p class="disclaim">Tap a day to plan its cook. 🔥 big-cook day · 🍔 good · 🧥 coat-on · 🌧️ wet.</p></div>`;
   _cookout={fc:_lastFc,today:b};
-  return `<div class="cookout"><div class="stack">${play}${kit}</div><div id="cookCard">${cookCardHTML(p,null)}</div></div>${week}`;
+  return `<div class="cookout"><div class="stack">${play}<div id="kitCard">${kitCardHTML(p,"today")}</div></div><div id="cookCard">${cookCardHTML(p,null)}</div></div>${week}`;
 }
 let _cookout=null, _lastFc=null;
-// What to cook for a plan; `day` (from dayPlan, plus a name) adds that day's play, weather and kit.
+// Available kit for the selected day (notes kept to one line so the card height never changes).
+function kitCardHTML(p,dayName){
+  return `<div class="card"><h2>Available kit · ${esc(dayName)}</h2>
+    <ul class="kitlist">${Object.keys(KIT).map(k=>{ const st=p.kit[k];
+      return `<li><span class="ks">${st.ok==="go"?"✅":st.ok==="maybe"?"⚠️":"❌"}</span><div><b>${KIT[k].e} ${KIT[k].name}</b><small title="${esc(st.note)}">${esc(st.note)}</small></div></li>`; }).join("")}</ul>
+    <p class="disclaim">Traeger, Blackstone and Clementi live under the roof, so rain doesn't bench them, but storms and wind through the open sides do. The Kadai and kettle need a dry, calm window.</p></div>`;
+}
+// What to cook for a plan; `day` (from dayPlan, plus a name) adds that day's play and weather.
 function cookCardHTML(p,day){
   const yt=(h,q)=>"https://www.youtube.com/@"+h+"/search?query="+encodeURIComponent(q);
   const head=!day?"":`<div class="verdict ${p.vc}" style="font-size:1.15rem">${esc(p.headline)}</div>
-    <p class="on">${day.hi}° high · feels ~${day.feels}° in the afternoon · ${day.pop}% rain · wind ${day.wind} mph${day.window?` · open-air ${day.window}`:" · no open-air window"}</p>
-    <div class="factors">${Object.keys(KIT).map(k=>{ const st=p.kit[k];
-      return `<span class="factor" title="${esc(st.note)}">${KIT[k].e} ${KIT[k].short} ${st.ok==="go"?"✅":st.ok==="maybe"?"⚠️":"❌"}</span>`; }).join("")}</div>`;
+    <p class="on">${day.hi}° high · feels ~${day.feels}° in the afternoon · ${day.pop}% rain · wind ${day.wind} mph${day.window?` · open-air ${day.window}`:" · no open-air window"}</p>`;
   const rows=!p.top?`<p>Every bit of kit is benched${day?" that day":""}. Order a takeaway and plan the next cook.</p>`:
     p.dishes.map(d=>`<div class="dish"><div>
         <b>${d.e} ${esc(d.name)}</b>
@@ -945,12 +949,12 @@ function cookCardHTML(p,day){
 }
 document.addEventListener("click",e=>{
   const btn=e.target.closest("[data-day]"); if(!btn||!_cookout) return;
-  const i=+btn.dataset.day, box=$("#cookCard"); if(!box) return;
+  const i=+btn.dataset.day, box=$("#cookCard"), kitBox=$("#kitCard"); if(!box) return;
   document.querySelectorAll("#weekDays .daybtn").forEach(x=>x.classList.toggle("sel",+x.dataset.day===i));
-  if(i===0){ box.innerHTML=cookCardHTML(_cookout.today.plan,null); return; }
-  box.scrollTop=0;
-  const dp=dayPlan(_cookout.fc,i), info=_cookout.today.week.days[i];
-  box.innerHTML=cookCardHTML(dp.plan,{...dp,name:info?info.day.replace(/^./,c=>c.toUpperCase()):"That day"});
+  if(i===0){ box.innerHTML=cookCardHTML(_cookout.today.plan,null); if(kitBox) kitBox.innerHTML=kitCardHTML(_cookout.today.plan,"today"); return; }
+  const dp=dayPlan(_cookout.fc,i), info=_cookout.today.week.days[i], name=info?info.day.replace(/^./,c=>c.toUpperCase()):"That day";
+  box.innerHTML=cookCardHTML(dp.plan,{...dp,name});
+  if(kitBox) kitBox.innerHTML=kitCardHTML(dp.plan,name);
   if(window.innerWidth<=760) box.scrollIntoView({behavior:"smooth",block:"start"});
 });
 
