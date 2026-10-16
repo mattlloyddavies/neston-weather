@@ -198,6 +198,10 @@
 
   /* Field & Stream */
   .factors{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 4px}
+  .card.wide{grid-column:span 2}
+  @media (max-width:560px){.card.wide{grid-column:auto}}
+  .bbq-split{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:6px 22px;margin-top:6px}
+  .bbq-split h3{font-family:var(--mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin:10px 0 2px;font-weight:600}
   .cooks{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:12px}
   .cooks b{font-family:var(--disp)}
   .cooks p{margin:2px 0 0}
@@ -837,18 +841,30 @@ function kitRow(plan){
   return `<div class="factors">${Object.keys(KIT).map(k=>{ const s=plan.kit[k];
     return `<span class="factor" title="${esc(s.note)}">${KIT[k].e} ${KIT[k].short} ${s.ok==="go"?"✅":s.ok==="maybe"?"⚠️":"❌"}</span>`; }).join("")}</div>`;
 }
-function cookCard(b){
+// The BBQ card: one headline, then the kit/weather on one side and what to cook on the other.
+function bbqCard(b){
   const p=b.plan, yt=(h,q)=>"https://www.youtube.com/@"+h+"/search?query="+encodeURIComponent(q);
-  if(!p.top) return `<div class="card"><h2>What to cook</h2><div class="verdict no">Nothing outside today</div>
-    <p>Every bit of kit is benched. Order a takeaway and plan the next cook: ${b.week.pick}</p></div>`;
-  const best=b.week&&b.week.best;
-  const ahead=best&&best.i>0&&best.s>=4?`<p style="margin-top:12px">Planning ahead? <b>${best.day}</b> looks like your big-cook day (${best.hi}°, ${best.pop}% rain).</p>`:"";
-  return `<div class="card"><h2>What to cook</h2>
-    <div class="verdict" style="font-size:1.1rem;color:var(--ink)">${esc(p.headline)}</div>
-    <ul class="cooks">${p.dishes.map(d=>`<li><b>${d.e} ${esc(d.name)}</b> <span class="disclaim">${d.on||KIT[d.kit].on}${d.overnight?" · overnight, ready tomorrow":""}</span>
-      <div class="factors">${d.by.map(k=>`<a class="factor" href="${yt(PITMASTERS[k].h,d.q)}" target="_blank" rel="noopener">▶ ${esc(PITMASTERS[k].name)}</a>`).join("")}</div></li>`).join("")}</ul>
-    ${ahead}
-    <p class="disclaim" style="margin-top:10px">Links search each creator's YouTube channel. More from ${Object.values(PITMASTERS).map(x=>`<a href="https://www.youtube.com/@${x.h}" target="_blank" rel="noopener">${esc(x.name)}</a>`).join(" · ")}.</p></div>`;
+  const cooks=!p.top?`<p>Every bit of kit is benched. Order a takeaway and plan the next cook.</p>`:
+    `<ul class="cooks">${p.dishes.map(d=>`<li><b>${d.e} ${esc(d.name)}</b> <span class="disclaim">${d.on||KIT[d.kit].on}${d.overnight?" · overnight, ready tomorrow":""}</span>
+      <div class="factors">${d.by.map(k=>`<a class="factor" href="${yt(PITMASTERS[k].h,d.q)}" target="_blank" rel="noopener">▶ ${esc(PITMASTERS[k].name)}</a>`).join("")}</div></li>`).join("")}</ul>`;
+  return `<div class="card wide"><h2>BBQ forecast</h2>
+    <div class="verdict ${b.vc}">${esc(b.label)}</div>
+    <p>${b.why}</p>
+    <div class="bbq-split">
+      <div>
+        <h3>The kit today</h3>
+        ${kitRow(p)}
+        <p style="margin-top:8px">${b.window?`<b>Open-air window (Kadai, kettle):</b> ${b.window}`:`No dry open-air window left today, so it's covered kit only.`}</p>
+        <h3>This week</h3>
+        <div class="factors">${b.week.days.map(x=>`<span class="factor" title="${x.hi}°, ${x.pop}% rain">${x.dow} ${x.mark}</span>`).join("")}</div>
+        <p style="margin-top:8px">${b.week.pick}</p>
+      </div>
+      <div>
+        <h3>What to cook</h3>
+        ${cooks}
+      </div>
+    </div>
+    <p class="disclaim" style="margin-top:12px">Recipe links search each creator's YouTube channel. More from ${Object.values(PITMASTERS).map(x=>`<a href="https://www.youtube.com/@${x.h}" target="_blank" rel="noopener">${esc(x.name)}</a>`).join(" · ")}.</p></div>`;
 }
 
 // Rate each of the next 7 days for a BBQ and pick the best one.
@@ -1471,15 +1487,7 @@ function render(place, fc, air, alerts, sports){
         <p>${cat.note}${air&&air.current&&air.current.pm2_5!=null?` <span style="font-family:var(--mono);font-size:.78rem">PM2.5 ${Math.round(air.current.pm2_5)} µg/m³</span>`:""}</p></div>
       <div class="card"><h2>Humidity &amp; comfort</h2><div class="verdict" style="font-size:1.6rem;color:var(--ink)">${hum}%</div>
         <p>${humidityNote(hum,temp)}</p></div>
-      ${pro ? `<div class="card"><h2>BBQ forecast</h2>
-        <div class="verdict ${bbq.vc}">${esc(bbq.label)}</div>
-        <p>${bbq.why}</p>
-        ${kitRow(bbq.plan)}
-        <p style="margin-top:8px">${bbq.window?`<b>Open-air window (Kadai, kettle):</b> ${bbq.window}`:`No dry open-air window left today, so it's covered kit only.`}</p>
-        <div class="factors" style="margin-top:10px">${bbq.week.days.map(x=>`<span class="factor" title="${x.hi}°, ${x.pop}% rain">${x.dow} ${x.mark}</span>`).join("")}</div>
-        <p style="margin-top:8px">${bbq.week.pick}</p></div>`
-      : lockedCard("BBQ forecast","Today's cook, which bits of kit the weather allows, the open-air window and the best BBQ day this week.")}
-      ${pro ? cookCard(bbq) : lockedCard("What to cook","Weather-matched BBQ cook ideas with recipe videos from Meat Church, Chuds BBQ, Heath Riles and more.")}
+      ${pro ? bbqCard(bbq) : lockedCard("BBQ forecast","Today's cook, which bits of kit the weather allows, what to cook with recipe videos, and the best BBQ day this week.")}
     </div>
     </section>
 
