@@ -1,41 +1,32 @@
-# Heartland Weather Desk
+# Neston Weather Desk
 
-A personal, Midwest-tuned weather app. Single self-contained HTML page for the web —
-no build, no dependencies, no API keys — plus a Capacitor wrapper for iOS/Android.
+A personal weather app for **Neston, Cheshire** and the Dee estuary, with a strong opinion
+about whether you should light the BBQ. It's a fork of
+[Heartland Weather Desk](https://github.com/teskemj/ai) by Michael Teske, converted from the
+US Midwest to the UK. It's still a single self-contained HTML page: no build step, no
+dependencies, no API keys.
 
-**Live site:** https://teskemj.github.io/ai/ *(after Pages is enabled — see below)*
+**Live site:** https://mattlloyddavies.github.io/neston-weather/ *(after Pages is enabled)*
 
-## What it does
-- **10-day forecast** with highs/lows, rain odds, wind, and daily humidity
-- **Hourly** next-24-hours strip, timezone-correct per location
-- **Air quality** (US AQI) with a color-coded gauge and PM2.5
-- **Cloud cover** read — an honest sky percentage (clear → overcast), not wishful full sun
-- **Humidity & comfort** read
-- **Extreme-weather alerts** straight from the U.S. National Weather Service
-- **What to wear** and a blunt **stay-home verdict**, with a dry sense of humor
-- **Live scenic backdrop** that tracks the conditions (sun/moon, rain, snow, storms, fog)
-- **Holidays** banner with countdown and festive backdrop on the day
-- **Ballpark Report** — weather-driven sports lines + what to wear to the game, with
-  live Packers/Brewers/Bucks/Badgers schedules (teams follow the location you view)
-- **Field & Stream** — hunting & fishing ratings, solunar feeding windows, moon phase,
-  barometric pressure trend
-- **BBQ forecast** — grill verdict + best grilling window today
-- **Share cards** — one-tap branded, team-colored image of the conditions or the active
-  NWS alert (native share / Web Share API / download)
-- **Radar & maps** — interactive Leaflet map (OpenStreetMap base) with animated
-  **precipitation** radar (RainViewer), **cloud** cover (infrared satellite), and a
-  **wind** arrow field (Open-Meteo) — all keyless
-
-> **Forecast accuracy is the #1 priority** — see **[ACCURACY.md](ACCURACY.md)**. In the
-> US the **official NWS gridpoint forecast** (`api.weather.gov`) is now the primary for
-> current conditions, the hourly strip, the trend chart, and today's rain odds (shown as
-> an "NWS" badge), with Open-Meteo `best_match` (HRRR + NBM + GFS) as the base layer and
-> the fallback outside the US.
+## What's different from the Heartland original
+- **°C and mph**, UK date and time formats, **UK postcode search** (full or outward code, via postcodes.io)
+- **BBQ forecast** re-tuned for British weather. 13° and dry counts as a go. It also has a
+  **best BBQ day this week** strip and the gazebo-grilling verdict.
+- **Terrace Report**: football, rugby, cricket and pub-garden lines. Live fixtures for
+  Liverpool, Everton, Tranmere and Wrexham, or the Manchester clubs if you look at Manchester.
+- **Shore & Fairway**: golf, sea fishing, and **Parkgate marsh birding** with a model
+  high-water time and spring-tide flag (the daytime spring tides are the big event)
+- **European AQI**, England & Wales holidays (bank holidays, Bonfire Night, St David's Day)
+- **No paywall**: it's a personal build, so everything's unlocked (`const DEMO = true` in `index.html`)
+- **Warnings**: the Met Office and MeteoAlarm feeds block browser access, so the app
+  links to the Met Office North West warnings page instead of showing alerts in-app.
 
 ## Sources
-- Official forecast (US) + hazard alerts: [National Weather Service](https://www.weather.gov) (`api.weather.gov`)
-- Forecast base / 10-day / humidity / air quality / pressure / UV / sun: [Open-Meteo](https://open-meteo.com) (NOAA GFS/HRRR)
-- Team schedules: ESPN public API · ZIP lookup: Zippopotam.us
+- Forecast, humidity, air quality, pressure, UV, sun and tides: [Open-Meteo](https://open-meteo.com)
+- Postcodes: [postcodes.io](https://postcodes.io) · Fixtures: ESPN public API · Radar: RainViewer
+
+---
+*The rest of this README is from the original project and still applies to the app wrapper and store tooling.*
 
 ## Run it (web)
 Open `index.html` in any browser, or visit the live site. The 📍 location button needs

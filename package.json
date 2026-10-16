@@ -1,8 +1,8 @@
 {
-  "name": "heartland-weather-desk",
+  "name": "neston-weather-desk",
   "version": "1.0.0",
   "private": true,
-  "description": "Heartland Weather Desk — a Midwest-tuned weather, sports, hunting/fishing and BBQ app. Web app plus Capacitor wrappers for iOS and Android.",
+  "description": "Neston Weather Desk — a Dee-estuary weather, BBQ, football and birding app. Fork of Heartland Weather Desk.",
   "author": "Michael Teske",
   "license": "UNLICENSED",
   "scripts": {

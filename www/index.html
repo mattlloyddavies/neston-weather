@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Heartland Weather Desk</title>
+<title>Neston Weather Desk</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;700&display=swap">
@@ -341,10 +341,10 @@
 
 <header class="mast">
   <div class="mast-row">
-    <div class="brand"><b>Heartland Weather Desk</b><small>NWS&nbsp;·&nbsp;NOAA models&nbsp;·&nbsp;no sugarcoating</small></div>
+    <div class="brand"><b>Neston Weather Desk</b><small>Dee estuary&nbsp;·&nbsp;Open-Meteo&nbsp;·&nbsp;no sugarcoating</small></div>
     <div class="suggest">
       <form class="search" id="searchForm" autocomplete="off">
-        <input id="q" type="text" placeholder="City or 5-digit ZIP" aria-label="Search location">
+        <input id="q" type="text" placeholder="Town or postcode" aria-label="Search location">
         <button type="submit" class="primary">Search</button>
       </form>
       <div id="sugg" hidden></div>
@@ -358,16 +358,16 @@
 <div id="proModal" class="modal" hidden>
   <div class="sheet">
     <button class="x" data-pro-close aria-label="Close">×</button>
-    <h2>Heartland Weather Desk <span class="pro-tag">Premium</span></h2>
+    <h2>Neston Weather Desk <span class="pro-tag">Premium</span></h2>
     <p class="lede">Free gives you weather &amp; local sports. Premium unlocks everything else.</p>
     <div class="pro-on-note">✓ You're on <b>Premium</b> — everything's unlocked. Thanks!</div>
     <ul class="feat">
       <li>🔥 <b>BBQ forecast</b> — grill verdict &amp; the best window today</li>
       <li>⛳ <b>Golf forecast</b> — tee-time playability &amp; best window</li>
       <li>🎣 <b>Fishing</b> — bite rating &amp; solunar feeding windows</li>
-      <li>🦌 <b>Hunting</b> — deer-movement rating, moon &amp; pressure</li>
+      <li>🐦 <b>Birding</b> — Parkgate marsh rating, high tide &amp; spring tides</li>
     </ul>
-    <div class="price">$19.99<span>per year · or $2.99/mo · 14-day free trial, cancel anytime</span></div>
+    <div class="price">£14.99<span>per year · or £1.99/mo · 14-day free trial, cancel anytime</span></div>
     <button class="primary big" data-pro-unlock>Keep Premium</button>
     <button class="ghost" data-pro-restore>Restore purchase</button>
     <button class="ghost" data-pro-preview>Just preview it (no purchase)</button>
@@ -382,8 +382,8 @@
     <button data-tab="live" class="sel"><span class="ni">◉</span><span class="nl">Live</span></button>
     <button data-tab="forecast"><span class="ni">🗓️</span><span class="nl">Forecast</span></button>
     <button data-tab="radar"><span class="ni">🗺️</span><span class="nl">Radar</span></button>
-    <button data-tab="sports"><span class="ni">🏈</span><span class="nl">Sports</span></button>
-    <button data-tab="nature"><span class="ni">🎣</span><span class="nl">Field &amp; Stream</span></button>
+    <button data-tab="sports"><span class="ni">⚽</span><span class="nl">Sports</span></button>
+    <button data-tab="nature"><span class="ni">🎣</span><span class="nl">Shore &amp; Fairway</span></button>
   </nav>
   <div id="stage">
     <div id="locbar" hidden></div>
@@ -413,9 +413,9 @@
       </div>
     </section>
     <footer>
-      Official hazard alerts from the <a href="https://www.weather.gov" target="_blank" rel="noopener">U.S. National Weather Service</a>.
-      Forecast, humidity &amp; air quality via <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> (NOAA's GFS/HRRR guidance). ZIP lookup via Zippopotam.us. Holidays are U.S.
-      <div class="src" id="srcLine">Not a substitute for official warnings. If a siren goes off, don't finish reading this app.</div>
+      Official warnings: <a href="https://www.metoffice.gov.uk/weather/warnings-and-advice/uk-warnings#?regionName=nw" target="_blank" rel="noopener">Met Office (North West England)</a>.
+      Forecast, humidity, tides &amp; air quality via <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> (best-match models incl. Met Office UKV &amp; ECMWF). Postcode lookup via postcodes.io. Holidays are England &amp; Wales.
+      <div class="src" id="srcLine">Not a substitute for official warnings. If the Met Office says amber, believe them over this app.</div>
     </footer>
   </div>
 </main>
@@ -428,7 +428,9 @@ const $ = s => document.querySelector(s);
 const content = $("#content"), alertsEl = $("#alerts"), holidayEl = $("#holiday");
 const REDUCED = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
 // Demo mode: everything unlocked, no paywall UI. Enabled by demo.html or ?demo / #demo.
-const DEMO = (typeof window!=="undefined" && window.HWD_DEMO===true) || /\bdemo\b/i.test(location.search+" "+location.hash);
+// Personal Neston build: everything unlocked, no paywall UI. To bring the paywall back, use:
+// (typeof window!=="undefined" && window.HWD_DEMO===true) || /\bdemo\b/i.test(location.search+" "+location.hash)
+const DEMO = true;
 
 /* ================= persistence ================= */
 function savePlace(p){ try{ localStorage.setItem("hwd.place", JSON.stringify(p)); }catch(e){} }
@@ -525,12 +527,12 @@ function cloudWord(p){
 /* ================= AQI ================= */
 function aqiCat(a){
   if(a==null) return {label:"—",color:"var(--ink-soft)",note:"No reading."};
-  if(a<=50) return {label:"Good",color:"var(--good)",note:"Air's clean. Breathe like you mean it."};
-  if(a<=100) return {label:"Moderate",color:"var(--warn)",note:"Fine for most. The dramatically sensitive may sniffle."};
-  if(a<=150) return {label:"Unhealthy for sensitive groups",color:"#e08a2e",note:"Asthma, kids, and the elderly: take it easy out there."};
-  if(a<=200) return {label:"Unhealthy",color:"var(--bad)",note:"Everyone feels this one. Cut the outdoor cardio."};
-  if(a<=300) return {label:"Very unhealthy",color:"var(--crit)",note:"Stay inside. This is not the air you want in your lungs."};
-  return {label:"Hazardous",color:"var(--haz)",note:"Genuinely dangerous. Doors shut, mask on if you must go out."};
+  if(a<=20) return {label:"Good",color:"var(--good)",note:"Fresh air off the Irish Sea. Breathe like you mean it."};
+  if(a<=40) return {label:"Fair",color:"var(--good)",note:"Fine for basically everyone."};
+  if(a<=60) return {label:"Moderate",color:"var(--warn)",note:"Fine for most. The sensitive may notice it."};
+  if(a<=80) return {label:"Poor",color:"#e08a2e",note:"Asthma, kids, and the elderly: take it easy out there."};
+  if(a<=100) return {label:"Very poor",color:"var(--bad)",note:"Everyone feels this one. Cut the outdoor cardio."};
+  return {label:"Extremely poor",color:"var(--crit)",note:"Genuinely bad air. Windows shut, stay in if you can."};
 }
 
 /* ================= fetch ================= */
@@ -540,27 +542,37 @@ async function getJSON(url){
   return r.json();
 }
 async function geocode(q){
-  const d=await getJSON("https://geocoding-api.open-meteo.com/v1/search?count=6&language=en&format=json&name="+encodeURIComponent(q));
+  const base="https://geocoding-api.open-meteo.com/v1/search?count=6&language=en&format=json&name="+encodeURIComponent(q);
+  let d=await getJSON(base+"&countryCode=GB");
+  if(!d.results||!d.results.length) d=await getJSON(base); // not in the UK? fall back to worldwide
   return (d.results||[]).map(r=>({
-    name:r.name, admin1:r.admin1, country:r.country_code, lat:r.latitude, lon:r.longitude,
-    label:[r.name, r.admin1, r.country_code].filter(Boolean).join(", ")
+    name:r.name, admin1:r.admin2||r.admin1, country:r.country_code, lat:r.latitude, lon:r.longitude,
+    label:[r.name, r.admin2||r.admin1, r.country_code].filter(Boolean).join(", ")
   }));
 }
-async function geocodeZip(zip){
-  const d=await getJSON("https://api.zippopotam.us/us/"+zip);
-  const p=(d.places||[])[0]; if(!p) return null;
-  return {name:p["place name"], admin1:p.state, country:"US",
-    lat:parseFloat(p.latitude), lon:parseFloat(p.longitude),
-    label:p["place name"]+", "+p["state abbreviation"]+" "+zip};
+// UK postcodes via postcodes.io — full ("CH64 3TP") or outward code only ("CH64").
+const PC_FULL=/^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i, PC_OUT=/^[A-Z]{1,2}\d[A-Z\d]?$/i;
+const isPostcode = s => PC_FULL.test(s.trim()) || PC_OUT.test(s.trim());
+async function geocodePostcode(pc){
+  pc=pc.trim().toUpperCase();
+  try{
+    if(PC_FULL.test(pc)){
+      const r=(await getJSON("https://api.postcodes.io/postcodes/"+encodeURIComponent(pc))).result; if(!r) return null;
+      const town=(r.parish&&!/unparished/i.test(r.parish))?r.parish:(r.admin_ward||r.admin_district);
+      return {name:town, admin1:r.postcode, country:"GB", lat:r.latitude, lon:r.longitude, label:town+", "+r.postcode};
+    }
+    const r=(await getJSON("https://api.postcodes.io/outcodes/"+encodeURIComponent(pc))).result; if(!r) return null;
+    const par=(r.parish||[]).find(p=>!/unparished/i.test(p)), town=par||(r.admin_district||[])[0]||r.outcode;
+    return {name:town, admin1:r.outcode, country:"GB", lat:r.latitude, lon:r.longitude, label:town+", "+r.outcode};
+  }catch(e){ return null; }
 }
-const isZip = s => /^\d{5}$/.test(s.trim());
 
 /* ================= search suggestions ================= */
 let suggTimer=null;
 $("#q").addEventListener("input",e=>{
   const v=e.target.value.trim();
   clearTimeout(suggTimer);
-  if(v.length<2 || isZip(v)){ $("#sugg").hidden=true; return; }
+  if(v.length<2 || isPostcode(v)){ $("#sugg").hidden=true; return; }
   suggTimer=setTimeout(async()=>{
     try{
       const res=await geocode(v);
@@ -583,13 +595,13 @@ $("#searchForm").addEventListener("submit",async e=>{
   $("#sugg").hidden=true;
   showMsg("Finding “"+esc(v)+"”…",true);
   try{
-    if(isZip(v)){
-      const z=await geocodeZip(v);
-      if(!z){ showMsg("That ZIP didn't resolve. Try the city name instead.",false); return; }
+    if(isPostcode(v)){
+      const z=await geocodePostcode(v);
+      if(!z){ showMsg("That postcode didn't resolve. Try the town name instead.",false); return; }
       go(z); return;
     }
     const res=await geocode(v);
-    if(!res.length){ showMsg("Never heard of “"+esc(v)+".” Check the spelling, or it's too small to make the map.",false); return; }
+    if(!res.length){ showMsg("Never heard of “"+esc(v)+".” Check the spelling, or it's a village too small for the map.",false); return; }
     go(res[0]);
   }catch(err){ showMsg("Search hit a wall. Try again in a sec.",false); }
 });
@@ -597,10 +609,10 @@ $("#searchForm").addEventListener("submit",async e=>{
 /* ================= geolocation ================= */
 $("#locBtn").addEventListener("click",()=>{
   if(!navigator.geolocation){ showMsg("Your browser won't share its location. Type a city instead.",false); return; }
-  showMsg("Triangulating your exact couch…",true);
+  showMsg("Triangulating your exact sofa…",true);
   navigator.geolocation.getCurrentPosition(
     pos=>go({name:"Your location",admin1:"",country:"",lat:pos.coords.latitude,lon:pos.coords.longitude,label:"Your location"}),
-    ()=>showMsg("Location denied. Respect. Type a city or ZIP instead.",false),
+    ()=>showMsg("Location denied. Fair enough. Type a town or postcode instead.",false),
     {timeout:9000}
   );
 });
@@ -610,19 +622,19 @@ function showMsg(text,spin){ content.innerHTML=`<div class="msg"><b>${spin?'<spa
 /* ================= what to wear ================= */
 function dressFor(feels,pop,wind,uv,code){
   const items=[]; let lead="";
-  if(feels<0){ lead="Dress like the Arctic owes you money."; items.push("🧥 Heaviest coat","🧣 Scarf over your face","🧤 Insulated gloves","🥾 Real boots","🔥 Base layers"); }
-  else if(feels<20){ lead="Full winter kit. No heroics."; items.push("🧥 Winter coat","🧣 Scarf","🧤 Gloves","🎧 Hat","🥾 Boots"); }
-  else if(feels<35){ lead="Coat weather, and you know it."; items.push("🧥 Warm coat","🧤 Gloves","👖 Long pants","👟 Closed shoes"); }
-  else if(feels<50){ lead="The classic Midwest layer trap."; items.push("🧥 Jacket","👕 Long sleeves","👖 Pants","🧦 Socks you'll regret by noon"); }
-  else if(feels<65){ lead="Light-jacket limbo. Bring it, blame the forecast."; items.push("🧥 Light jacket","👕 Long or short sleeves","👖 Pants"); }
-  else if(feels<78){ lead="Genuinely pleasant. Dress like a functional adult."; items.push("👕 T-shirt","👖 Pants or shorts","😎 Optional smugness"); }
-  else if(feels<88){ lead="Warm. Keep it breathable."; items.push("👕 Light shirt","🩳 Shorts","🧢 Hat","💧 Water bottle"); }
-  else { lead="Dangerously hot. Dress like you're avoiding the oven you live in."; items.push("🩳 Least clothing legally advisable","🧢 Hat","🕶️ Sunglasses","💧 Water, lots","🧊 A plan to stay indoors"); }
-  if(pop>=50) items.push("☔ Umbrella (it'll invert, it always does)");
-  else if(pop>=30) items.push("🧥 Something water-resistant, just in case");
-  if(wind>=25) items.push("💨 Nothing you mind chasing down the block");
-  if(uv>=7) items.push("🧴 Sunscreen");
-  if([71,73,75,77,85,86,66,67,56,57].includes(code)) items.push("🥾 Traction — it's slick out there");
+  if(feels<-5){ lead="Proper cold. Rare round here, so you own nothing suitable."; items.push("🧥 Heaviest coat","🧣 Scarf over your face","🧤 Thick gloves","🥾 Real boots","🔥 Thermals"); }
+  else if(feels<2){ lead="Full winter kit. No heroics."; items.push("🧥 Winter coat","🧣 Scarf","🧤 Gloves","🧢 Woolly hat","🥾 Boots"); }
+  else if(feels<8){ lead="Coat weather, and you know it."; items.push("🧥 Warm coat","🧤 Gloves","👖 Trousers","👟 Closed shoes"); }
+  else if(feels<13){ lead="The classic British layer trap."; items.push("🧥 Jacket","👕 Long sleeves","👖 Trousers","🧦 A jumper you'll carry by noon"); }
+  else if(feels<18){ lead="Light-jacket limbo. Bring it, blame the forecast."; items.push("🧥 Light jacket","👕 Long or short sleeves","👖 Trousers"); }
+  else if(feels<23){ lead="Genuinely pleasant. Dress like a functional adult."; items.push("👕 T-shirt","👖 Trousers or shorts","😎 Optional smugness"); }
+  else if(feels<27){ lead="Warm. Britain is not built for this. Keep it breathable."; items.push("👕 Light shirt","🩳 Shorts","🧢 Hat","💧 Water bottle"); }
+  else { lead="Heatwave. The trains have melted and so will you."; items.push("🩳 Least clothing legally advisable","🧢 Hat","🕶️ Sunglasses","💧 Water, lots","🧊 A plan involving shade"); }
+  if(pop>=50) items.push("☔ Brolly (it'll invert on the prom, it always does)");
+  else if(pop>=30) items.push("🧥 Something waterproof. It's Britain.");
+  if(wind>=25) items.push("💨 Nothing you mind chasing down the street");
+  if(uv>=6) items.push("🧴 Sun cream (yes, really)");
+  if([71,73,75,77,85,86,66,67,56,57].includes(code)) items.push("🥾 Grip — it's slippy out there");
   return {lead,items};
 }
 
@@ -642,40 +654,42 @@ function bleacherWear(feels,pop,wind,uv,code,evn){
   const items=[]; let lead;
   const wet=pop>=50||[51,53,55,61,63,65,80,81,82,95,96,99].includes(code);
   const snow=[71,73,75,77,85,86].includes(code);
-  if(feels<=20){ lead="You'll be sitting still in the cold for three hours. Dress like it's a survival exercise, because it is.";
-    items.push("🧥 Parka, not a jacket","🧣 Scarf + hat","🧤 Gloves","🔥 Hand & foot warmers","🪑 Seat cushion (metal bleachers are merciless)","🧦 Wool socks","☕ Thermos of something warm"); }
-  else if(feels<40){ lead="Cold-game kit. The sun leaves, the metal stays freezing.";
-    items.push("🧥 Heavy coat","🎧 Beanie","🧤 Gloves","🪑 Something to sit on","🧣 Blanket for the late innings"); }
-  else if(feels<55){ lead="Deceptively chilly once you stop moving. Bring the layer you'll pretend you didn't need.";
-    items.push("🧥 Hoodie + an extra layer","👖 Long pants","🪑 Seat cushion","🧦 Real socks"); }
-  else if(feels<72){ lead="Pleasant now, cooler by the 7th. Pack for the version of today that happens at night.";
-    items.push("👕 Long-sleeve or tee","🧥 Light layer for the evening drop","🧢 Hat","🕶️ Sunglasses"); }
-  else if(feels<86){ lead="Good game weather. Mind the sun, mind the beer line.";
-    items.push("👕 T-shirt","🧢 Cap","🕶️ Sunglasses","🧴 Sunscreen","💧 Water"); }
-  else { lead="Hot-seat special. Shade and water are the whole strategy.";
-    items.push("👕 Lightest shirt you own","🧢 Hat","🕶️ Sunglasses","🧴 Sunscreen, reapplied","💧 Water, then more","🧊 A frozen towel if you're fancy"); }
-  if(wet) items.push("🧥 Poncho (umbrellas start fights in the stands)");
+  if(feels<=-3){ lead="Ninety minutes sat still in the freezing cold. Dress like it's a survival exercise, because it is.";
+    items.push("🧥 Big coat, not a jacket","🧣 Club scarf + hat","🧤 Gloves","🔥 Hand warmers","🧦 Thick socks","☕ Bovril at half-time"); }
+  else if(feels<5){ lead="Cold-match kit. The floodlights come on and the warmth goes off.";
+    items.push("🧥 Heavy coat","🧢 Woolly hat","🧤 Gloves","🧣 Scarf","☕ Something hot at the break"); }
+  else if(feels<12){ lead="Deceptively nippy once you stop moving. Bring the layer you'll pretend you didn't need.";
+    items.push("🧥 Hoodie + an extra layer","👖 Trousers","🧦 Proper socks"); }
+  else if(feels<20){ lead="Pleasant now, cooler by full-time. Pack for the version of today that happens after dark.";
+    items.push("👕 Long-sleeve or shirt","🧥 Light layer for the evening drop","🕶️ Sunglasses"); }
+  else if(feels<27){ lead="Lovely match weather. Mind the sun, mind the bar queue.";
+    items.push("👕 T-shirt","🧢 Cap","🕶️ Sunglasses","🧴 Sun cream","💧 Water"); }
+  else { lead="Scorcher. Shade and water are the whole strategy.";
+    items.push("👕 Lightest shirt you own","🧢 Hat","🕶️ Sunglasses","🧴 Sun cream, reapplied","💧 Water, then more"); }
+  if(wet) items.push("🧥 Waterproof (brollies block views and start rows)");
   if(snow) items.push("❄️ Waterproof boots");
-  if(wind>=18) items.push("💨 Secure the hat or kiss it goodbye");
-  if(uv>=7 && feels<72) items.push("🧴 Sunscreen (yes, even now)");
+  if(wind>=18) items.push("💨 Hold onto the hat");
+  if(uv>=6 && feels<20) items.push("🧴 Sun cream (yes, even now)");
   let note=null;
-  if(evn!=null && (feels-evn)>=8) note="First pitch feels like ~"+Math.round(feels)+"°, but by the late innings it's ~"+evn+"°. That layer is not optional.";
+  if(evn!=null && (feels-evn)>=4) note="Kick-off feels like ~"+Math.round(feels)+"°, but by the final whistle it's ~"+evn+"°. That layer is not optional.";
   return {lead,items,note};
 }
 
 /* ================= BBQ / grill forecast ================= */
+const hhmm = ms => new Date(ms).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'UTC'});
 function bbqReport(fc,cur){
   const feels=cur.apparent_temperature, wind=cur.wind_speed_10m, code=cur.weather_code;
   const storm=[95,96,99,82,65,75,86].includes(code);
   const wet=[51,53,55,61,63,80,81,67,57].includes(code);
   let label,vc,why;
-  if(storm){ label="Hard pass"; vc="no"; why="Storms or heavy stuff coming down. Even stubborn grillers respect lightning — order in tonight."; }
-  else if(wet){ label="Garage grilling"; vc="maybe"; why="On-and-off precip. Crack the garage door, keep the lid down, and commit to the bit."; }
-  else if(wind>=25){ label="Fight the wind"; vc="maybe"; why="Gusty out there — flare-ups and runaway temps. Shield the grill or wait for a lull."; }
-  else if(feels<=25){ label="Hardcore only"; vc="maybe"; why="Brutally cold. Propane sulks and the grates fight back. Bundle up, legend."; }
-  else if(feels<=45){ label="Doable, dress warm"; vc="maybe"; why="Chilly but dry. Preheat longer, keep that lid closed, and don't dawdle with the tongs."; }
-  else if(feels>=95){ label="Dawn or dusk"; vc="maybe"; why="Too hot to stand over coals midday. Grill early or late, cold drink mandatory."; }
-  else { label="Fire it up"; vc="go"; why="Prime grilling weather — dry, comfortable, and begging for something over the flames."; }
+  if(storm){ label="Hard pass"; vc="no"; why="Thunder, downpours, the lot. Even the most stubborn dad respects lightning. Sausages under the grill indoors tonight."; }
+  else if(wet){ label="Gazebo grilling"; vc="maybe"; why="On-and-off drizzle. Gazebo up, lid down, brolly over the cook. This is the British way and we will not be stopped."; }
+  else if(wind>=25){ label="Fight the wind"; vc="maybe"; why="It's blowing a hoolie off the Dee. Flare-ups and runaway temps. Shield the grill or wait for a lull."; }
+  else if(feels<=0){ label="Hardcore only"; vc="maybe"; why="Below freezing. The gas bottle sulks and the tongs stick to your fingers. Bundle up, legend."; }
+  else if(feels<=8){ label="Coat-on BBQ"; vc="maybe"; why="Chilly but dry. Fleece on, preheat longer, lid closed, and keep the burgers moving."; }
+  else if(feels<=13){ label="Classic British BBQ"; vc="go"; why="Dry and double figures, which is basically a bank-holiday heatwave. Fire it up, fleeces optional."; }
+  else if(feels>=30){ label="Dawn or dusk"; vc="maybe"; why="Too hot to stand over coals at midday. In Britain, somehow. Grill late, cold drink mandatory."; }
+  else { label="Fire it up"; vc="go"; why="Proper BBQ weather. Dry, warm, and begging for something over charcoal. Get the neighbours round before it clouds over."; }
   // best grilling window left today
   const h=fc.hourly, off=(fc.utc_offset_seconds||0)*1000, nowU=Date.now()+off, todayStr=new Date(nowU).toISOString().slice(0,10);
   let i=h.time.findIndex(t=>Date.parse(t+"Z")>=nowU-3600000); if(i<0) i=0;
@@ -684,7 +698,7 @@ function bbqReport(fc,cur){
       w=h.wind_speed_10m?h.wind_speed_10m[k]:wind, f=h.apparent_temperature?h.apparent_temperature[k]:feels, day=h.is_day?h.is_day[k]:1;
     if([95,96,99,82,65,75,86].includes(c)) s-=4; if(pp>=50) s-=3; else if(pp>=30) s-=1;
     if(w>25) s-=2; else if(w>=15) s-=1;
-    if(f<25) s-=2; else if(f<45) s-=1; else if(f>=50&&f<=88) s+=1; else if(f>95) s-=1;
+    if(f<0) s-=2; else if(f<7) s-=1; else if(f>=11&&f<=29) s+=1; else if(f>33) s-=1;
     if(day) s+=1; return s; };
   let bestA=-1,bestB=-1,curA=-1;
   for(let k=i;k<h.time.length && h.time[k].slice(0,10)===todayStr;k++){
@@ -692,13 +706,37 @@ function bbqReport(fc,cur){
     else curA=-1;
   }
   let window=null;
-  if(bestA>=0){ const fl=ms=>new Date(ms).toLocaleTimeString('en-US',{hour:'numeric',timeZone:'UTC'});
-    window=fl(Date.parse(h.time[bestA]+"Z"))+"–"+fl(Date.parse(h.time[bestB]+"Z")+3600000); }
+  if(bestA>=0) window=hhmm(Date.parse(h.time[bestA]+"Z"))+"–"+hhmm(Date.parse(h.time[bestB]+"Z")+3600000);
   let smoker;
-  if(wind>=18) smoker="Low-and-slow today? "+Math.round(wind)+" mph wind will swing your temps and eat fuel — ride the vents.";
-  else if(feels<=32) smoker="Cold-smoke day — budget extra fuel and time; insulate the cook chamber if you can.";
-  else smoker="Great day for low-and-slow — steady air, steady smoke.";
-  return {label,vc,why,window,smoker};
+  if(wind>=18) smoker="Low-and-slow today? "+Math.round(wind)+" mph of wind will swing your temps and eat charcoal. Ride the vents.";
+  else if(feels<=0) smoker="Cold-smoke day. Budget extra fuel and time, and insulate the cook chamber if you can.";
+  else smoker="Great day for low-and-slow. Steady air, steady smoke.";
+  return {label,vc,why,window,smoker,week:bbqWeek(fc)};
+}
+// Rate each of the next 7 days for a BBQ and pick the best one.
+function bbqWeek(fc){
+  const d=fc.daily, out=[];
+  for(let i=0;i<Math.min(7,d.time.length);i++){
+    const hi=d.temperature_2m_max[i], pop=d.precipitation_probability_max?d.precipitation_probability_max[i]:0,
+      w=d.wind_speed_10m_max?d.wind_speed_10m_max[i]:0, c=d.weather_code[i];
+    let s=0;
+    if(hi>=22) s+=3; else if(hi>=18) s+=2; else if(hi>=14) s+=1; else if(hi<8) s-=2;
+    if(hi>=30) s-=1;
+    if(pop<=20) s+=2; else if(pop<=40) s+=1; else if(pop>=70) s-=2; else s-=1;
+    if(w>=25) s-=2; else if(w>=18) s-=1;
+    if([95,96,99,82,65].includes(c)) s-=2;
+    const dt=new Date(d.time[i]+"T12:00:00");
+    out.push({i,s,hi:Math.round(hi),pop:Math.round(pop),
+      dow:i===0?"Today":dt.toLocaleDateString("en-GB",{weekday:"short"}),
+      day:i===0?"today":dt.toLocaleDateString("en-GB",{weekday:"long"}),
+      mark:s>=4?"🔥":s>=2?"🍔":s>=0?"🧥":"🌧️"});
+  }
+  const best=out.reduce((a,b)=>b.s>a.s?b:a, out[0]);
+  let pick;
+  if(!best||best.s<0) pick="No proper BBQ day in the next week. Classic. Keep the charcoal dry and your expectations low.";
+  else if(best.s>=4) pick="Best BBQ day: <b>"+best.day+"</b> ("+best.hi+"°, "+best.pop+"% rain). Buy the burgers now before Tesco sells out.";
+  else pick="Best of a mixed bunch: <b>"+best.day+"</b> ("+best.hi+"°, "+best.pop+"% rain). Gazebo on standby.";
+  return {days:out,best,pick};
 }
 
 /* ================= golf forecast (Pro) ================= */
@@ -708,9 +746,9 @@ function golfReport(fc,cur){
   let label,vc,why;
   if(storm){ label="Clubhouse"; vc="no"; why="Lightning and a bag of irons don't mix. Buy a round inside and wait it out."; }
   else if(heavy){ label="Rain delay"; vc="no"; why="Course is taking on water — plugged lies and casual water everywhere. Reschedule."; }
-  else if(gust>=35||wind>=28){ label="Brutal wind"; vc="maybe"; why="Club up, aim a fairway over, and forgive yourself early. The wind wins today."; }
-  else if(feels<=38){ label="Bundled bogey golf"; vc="maybe"; why="Cold and stiff — the ball won't fly and neither will you. Hand warmers in the cart."; }
-  else if(feels>=92){ label="Cart & hydrate"; vc="maybe"; why="Hot one. Ride it, drink water, reapply sunscreen, expect a back-nine fade."; }
+  else if(gust>=35||wind>=28){ label="Links-style wind"; vc="maybe"; why="Proper Hoylake wind. Club up, keep it low, aim a fairway over, and forgive yourself early."; }
+  else if(feels<=3){ label="Bundled bogey golf"; vc="maybe"; why="Cold and stiff. The ball won't fly and neither will you. Hand warmers in the bag."; }
+  else if(feels>=30){ label="Buggy & hydrate"; vc="maybe"; why="Hot one. Take a buggy, drink water, reapply sun cream, expect a back-nine fade."; }
   else if(wet){ label="Soft but playable"; vc="maybe"; why="Damp and soft — no roll, lift-clean-place territory. Keep a towel handy."; }
   else { label="Tee it up"; vc="go"; why="Honest golf weather — manageable wind, dry, comfortable. No excuses on the card today."; }
   const h=fc.hourly, off=(fc.utc_offset_seconds||0)*1000, nowU=Date.now()+off, todayStr=new Date(nowU).toISOString().slice(0,10);
@@ -720,14 +758,13 @@ function golfReport(fc,cur){
       w=h.wind_speed_10m?h.wind_speed_10m[k]:wind, f=h.apparent_temperature?h.apparent_temperature[k]:feels, day=h.is_day?h.is_day[k]:1;
     if([95,96,99,82,65,75,86].includes(c)) s-=4; if(pp>=50) s-=3; else if(pp>=30) s-=1;
     if(w>28) s-=3; else if(w>=18) s-=2; else if(w>=12) s-=1;
-    if(f<40) s-=1; else if(f>=55&&f<=85) s+=1; else if(f>92) s-=1; if(day) s+=1; return s; };
+    if(f<4) s-=1; else if(f>=12&&f<=29) s+=1; else if(f>33) s-=1; if(day) s+=1; return s; };
   let bestA=-1,bestB=-1,curA=-1;
   for(let k=i;k<h.time.length && h.time[k].slice(0,10)===todayStr;k++){
     if(scr(k)>=3){ if(curA<0) curA=k; if(bestA<0 || (k-curA)>(bestB-bestA)){ bestA=curA; bestB=k; } } else curA=-1;
   }
   let window=null;
-  if(bestA>=0){ const fl=ms=>new Date(ms).toLocaleTimeString('en-US',{hour:'numeric',timeZone:'UTC'});
-    window=fl(Date.parse(h.time[bestA]+"Z"))+"–"+fl(Date.parse(h.time[bestB]+"Z")+3600000); }
+  if(bestA>=0) window=hhmm(Date.parse(h.time[bestA]+"Z"))+"–"+hhmm(Date.parse(h.time[bestB]+"Z")+3600000);
   return {label,vc,why,window,wind:Math.round(wind),gust:Math.round(gust)};
 }
 
@@ -743,95 +780,61 @@ function sportsLines(feels,temp,wind,gust,pop,code){
   const storm=[95,96,99].includes(code), heavy=[65,82,86,75].includes(code);
   const wet=pop>=50||[51,53,55,61,63,65,80,81,82].includes(code)||storm;
   const snow=[71,73,75,77,85,86].includes(code);
-  const windy=wind>=18||gust>=28, calm=wind<8, frigid=feels<=20, cold=feels<40, hot=feels>=88;
+  const windy=wind>=18||gust>=28, frigid=feels<=0, cold=feels<6, hot=feels>=25, grey=code===2||code===3;
   const L=[];
-  // Baseball
-  if(storm||heavy||snow) L.push({icon:"⚾",sport:"Baseball",text:"The tarp's coming out. First pitch is a maybe; your $14 nachos are not.",lean:"Rain delay",cls:"no"});
-  else if(hot&&calm) L.push({icon:"⚾",sport:"Baseball",text:"Hot and dead-still — thin, warm air and the ball flies. So do the beer prices.",lean:"Over",cls:"over"});
-  else if(windy&&feels>=58) L.push({icon:"⚾",sport:"Baseball",text:"Wind's whipping through — fly balls become a group project for the outfield.",lean:"Chaos / over",cls:"over"});
-  else if(feels<50) L.push({icon:"⚾",sport:"Baseball",text:"Chilly for baseball — the ball doesn't carry, and neither does your enthusiasm.",lean:"Under",cls:"under"});
-  else L.push({icon:"⚾",sport:"Baseball",text:"Honest baseball weather. The ball behaves. So, suspiciously, does everyone else.",lean:"Pick 'em",cls:"push"});
   // Football
-  if(frigid) L.push({icon:"🏈",sport:"Football",text:"Lambeau-core. "+Math.round(feels)+"° feels-like — frozen-tundra ball. Run game, shanked kicks, frostbitten fingers.",lean:"Under, hard",cls:"under"});
-  else if(cold&&windy) L.push({icon:"🏈",sport:"Football",text:"Cold and windy — the passing game shrinks and the punter quietly updates his résumé.",lean:"Under",cls:"under"});
-  else if(wet) L.push({icon:"🏈",sport:"Football",text:"Sloppy track. Fumbles, short fields, and a kicker living a nightmare.",lean:"Under / run",cls:"under"});
-  else if(hot) L.push({icon:"🏈",sport:"Football",text:"Warm for football — early-season sweat bowl. Cramp city by the fourth quarter.",lean:"Slight over",cls:"over"});
-  else L.push({icon:"🏈",sport:"Football",text:"Fair football weather. No excuses — which is its own special kind of pressure.",lean:"Pick 'em",cls:"push"});
-  // Golf
-  if(storm) L.push({icon:"⛳",sport:"Golf",text:"Lightning plus a bag of irons is a cautionary tale. The clubhouse is undefeated.",lean:"Clubhouse",cls:"no"});
-  else if(windy) L.push({icon:"⛳",sport:"Golf",text:"Gusts to "+Math.round(gust)+" — par just became aspirational and your slice is now a felony.",lean:"Blame the wind",cls:"under"});
-  else if(wet) L.push({icon:"⛳",sport:"Golf",text:"Wet and soft — no roll, plugged lies, soggy socks. Lift, clean, and complain.",lean:"Soft",cls:"under"});
-  else if(hot) L.push({icon:"⛳",sport:"Golf",text:"Hot one — ride the cart, hydrate, reapply. The back nine is where scorecards go to die.",lean:"Fade late",cls:"under"});
-  else L.push({icon:"⛳",sport:"Golf",text:"Genuinely nice golf weather. Deeply suspicious. Tee off before the sky reconsiders.",lean:"Send it",cls:"over"});
-  // Tailgate
-  if(frigid) L.push({icon:"🍺",sport:"Tailgate",text:"Survival tailgate. Propane, chili, and decisions you'll defend forever. We'll be there.",lean:"4/10",cls:"under"});
-  else if(storm||heavy) L.push({icon:"🍺",sport:"Tailgate",text:"Soggy lot. The grill is fighting for its life and losing with dignity.",lean:"3/10",cls:"no"});
-  else if(cold) L.push({icon:"🍺",sport:"Tailgate",text:"Crisp lot, cold hands, hot brats. This is the good stuff, actually.",lean:"7/10",cls:"over"});
-  else if(hot) L.push({icon:"🍺",sport:"Tailgate",text:"Parking-lot sauna. Keep the cooler full and the cornhole in the shade.",lean:"6/10",cls:"push"});
-  else L.push({icon:"🍺",sport:"Tailgate",text:"Chef's-kiss tailgate weather. Clear skies, cold cans. Call in sick tomorrow.",lean:"10/10",cls:"over"});
-  return L.map(l=>({...l, key:l.sport.toLowerCase()}));
+  if(storm||heavy||snow) L.push({icon:"⚽",sport:"Football",text:"Waterlogged pitch watch. Expect a 1pm inspection and a referee prodding the grass with a stick.",lean:"Postponed?",cls:"no"});
+  else if(frigid) L.push({icon:"⚽",sport:"Football",text:"Bitterly cold, so it's orange-ball weather. Bovril at half-time is not optional.",lean:"Under",cls:"under"});
+  else if(windy) L.push({icon:"⚽",sport:"Football",text:"Wind swirling round the ground. Goal kicks come back to the keeper and long balls end up in Birkenhead.",lean:"Chaos",cls:"over"});
+  else if(wet) L.push({icon:"⚽",sport:"Football",text:"Slick surface, zippy passes, at least one keeper howler. Proper football.",lean:"Goals",cls:"over"});
+  else if(hot) L.push({icon:"⚽",sport:"Football",text:"Warm for football. Drinks breaks, slow tempo and a sunburnt away end.",lean:"Slow game",cls:"under"});
+  else L.push({icon:"⚽",sport:"Football",text:"Fair football weather. No excuses, which is its own special kind of pressure.",lean:"Pick 'em",cls:"push"});
+  // Rugby
+  if(storm) L.push({icon:"🏉",sport:"Rugby",text:"Lightning's the one thing that stops rugby. Anything else, they'd play through.",lean:"Delayed",cls:"no"});
+  else if(wet||snow) L.push({icon:"🏉",sport:"Rugby",text:"Greasy ball, knock-ons galore, forwards' day. The scrum-half is having a nightmare.",lean:"Under",cls:"under"});
+  else if(windy) L.push({icon:"🏉",sport:"Rugby",text:"Kicking into that wind is a lottery. Win the toss, pick your end wisely.",lean:"Chaos",cls:"over"});
+  else if(cold) L.push({icon:"🏉",sport:"Rugby",text:"Cold, hard ground and harder tackles. Classic winter rugby.",lean:"Pick 'em",cls:"push"});
+  else L.push({icon:"🏉",sport:"Rugby",text:"Dry ball and quick backs. Expect tries.",lean:"Over",cls:"over"});
+  // Cricket
+  if(storm||heavy||wet) L.push({icon:"🏏",sport:"Cricket",text:"Covers on. Rain, then bad light, then rain again. Tea taken early.",lean:"Rain stopped play",cls:"no"});
+  else if(feels<12) L.push({icon:"🏏",sport:"Cricket",text:"Three jumpers on and hands in pockets at slip. The ball will swing, though.",lean:"Bowlers",cls:"under"});
+  else if(grey) L.push({icon:"🏏",sport:"Cricket",text:"Overcast and muggy. The seamers are licking their lips. Get your nicks in early.",lean:"Swing",cls:"under"});
+  else if(hot) L.push({icon:"🏏",sport:"Cricket",text:"Batting day. Flat track, sun out, bowlers praying for a cloud.",lean:"Runs",cls:"over"});
+  else L.push({icon:"🏏",sport:"Cricket",text:"Fine cricket weather. Someone will still offer the light at half six.",lean:"Pick 'em",cls:"push"});
+  // Pub garden
+  if(frigid) L.push({icon:"🍺",sport:"Pub garden",text:"Patio heaters on, coats on, and your hands go cold faster than the lager. Inside by the fire, surely?",lean:"3/10",cls:"under"});
+  else if(storm||heavy) L.push({icon:"🍺",sport:"Pub garden",text:"The beer garden is now a water feature. Find a table by the fire.",lean:"2/10",cls:"no"});
+  else if(wet) L.push({icon:"🍺",sport:"Pub garden",text:"Huddled under the umbrella table, pint in hand, pretending it's fine. Very British.",lean:"5/10",cls:"push"});
+  else if(cold) L.push({icon:"🍺",sport:"Pub garden",text:"Crisp and dry. Coat on, pint in hand, sunset over the Dee. Better than it sounds.",lean:"6/10",cls:"push"});
+  else if(hot) L.push({icon:"🍺",sport:"Pub garden",text:"Beer garden heaven. Every table on Parkgate prom is gone by noon, so get there early.",lean:"10/10",cls:"over"});
+  else L.push({icon:"🍺",sport:"Pub garden",text:"Decent beer garden weather. A pint and a view across to Wales. Go on.",lean:"8/10",cls:"over"});
+  return L.map(l=>({...l, key:l.sport.toLowerCase().replace(/\s+/g,"")}));
 }
 
 /* ================= seasonal smarts ================= */
 function seasonInfo(){
   const m=new Date().getMonth(); // 0=Jan
-  const football=(m>=8||m<=1), baseball=(m>=2&&m<=9), golf=(m>=3&&m<=9);
-  const primary= football ? "football" : (baseball ? "baseball" : "football");
-  return {football,baseball,golf,primary,label:primary==="football"?"football season":"baseball season"};
+  const football=(m>=7||m<=4), cricket=(m>=3&&m<=8), rugby=(m>=8||m<=5), golf=true;
+  const primary= football ? "football" : "cricket";
+  return {football,cricket,rugby,golf,primary,label:primary==="football"?"football season":"cricket season"};
 }
 
 /* ================= team schedules (location-aware, live from ESPN) ================= */
 const LG={
-  nfl:{emoji:"🏈",tag:"NFL"}, mlb:{emoji:"⚾",tag:"MLB"},
-  nba:{emoji:"🏀",tag:"NBA"}, ncaaf:{emoji:"🎓",tag:"CFB"}
+  epl:{emoji:"⚽",tag:"PL"}, champ:{emoji:"⚽",tag:"CHAMP"}, l2:{emoji:"⚽",tag:"L2"}
 };
 const TEAM_DB={
-  packers:{label:"Packers",lg:"nfl",path:"football/nfl/teams/gb"},
-  vikings:{label:"Vikings",lg:"nfl",path:"football/nfl/teams/min"},
-  bears:{label:"Bears",lg:"nfl",path:"football/nfl/teams/chi"},
-  lions:{label:"Lions",lg:"nfl",path:"football/nfl/teams/det"},
-  browns:{label:"Browns",lg:"nfl",path:"football/nfl/teams/cle"},
-  bengals:{label:"Bengals",lg:"nfl",path:"football/nfl/teams/cin"},
-  colts:{label:"Colts",lg:"nfl",path:"football/nfl/teams/ind"},
-  chiefs:{label:"Chiefs",lg:"nfl",path:"football/nfl/teams/kc"},
-  brewers:{label:"Brewers",lg:"mlb",path:"baseball/mlb/teams/mil"},
-  cubs:{label:"Cubs",lg:"mlb",path:"baseball/mlb/teams/chc"},
-  whitesox:{label:"White Sox",lg:"mlb",path:"baseball/mlb/teams/chw"},
-  twins:{label:"Twins",lg:"mlb",path:"baseball/mlb/teams/min"},
-  tigers:{label:"Tigers",lg:"mlb",path:"baseball/mlb/teams/det"},
-  guardians:{label:"Guardians",lg:"mlb",path:"baseball/mlb/teams/cle"},
-  reds:{label:"Reds",lg:"mlb",path:"baseball/mlb/teams/cin"},
-  cardinals:{label:"Cardinals",lg:"mlb",path:"baseball/mlb/teams/stl"},
-  royals:{label:"Royals",lg:"mlb",path:"baseball/mlb/teams/kc"},
-  bucks:{label:"Bucks",lg:"nba",path:"basketball/nba/teams/mil"},
-  bulls:{label:"Bulls",lg:"nba",path:"basketball/nba/teams/chi"},
-  wolves:{label:"Timberwolves",lg:"nba",path:"basketball/nba/teams/min"},
-  pistons:{label:"Pistons",lg:"nba",path:"basketball/nba/teams/det"},
-  cavaliers:{label:"Cavaliers",lg:"nba",path:"basketball/nba/teams/cle"},
-  pacers:{label:"Pacers",lg:"nba",path:"basketball/nba/teams/ind"},
-  badgers:{label:"Badgers",lg:"ncaaf",path:"football/college-football/teams/275"},
-  gophers:{label:"Gophers",lg:"ncaaf",path:"football/college-football/teams/135"},
-  illini:{label:"Illini",lg:"ncaaf",path:"football/college-football/teams/356"},
-  buckeyes:{label:"Buckeyes",lg:"ncaaf",path:"football/college-football/teams/194"},
-  wolverines:{label:"Wolverines",lg:"ncaaf",path:"football/college-football/teams/130"},
-  hawkeyes:{label:"Hawkeyes",lg:"ncaaf",path:"football/college-football/teams/2294"},
-  huskers:{label:"Cornhuskers",lg:"ncaaf",path:"football/college-football/teams/158"}
+  liverpool:{label:"Liverpool",lg:"epl",path:"soccer/eng.1/teams/364"},
+  everton:{label:"Everton",lg:"epl",path:"soccer/eng.1/teams/368"},
+  mancity:{label:"Man City",lg:"epl",path:"soccer/eng.1/teams/382"},
+  manutd:{label:"Man United",lg:"epl",path:"soccer/eng.1/teams/360"},
+  wrexham:{label:"Wrexham",lg:"champ",path:"soccer/eng.2/teams/352"},
+  tranmere:{label:"Tranmere",lg:"l2",path:"soccer/eng.4/teams/345"}
 };
-// Teams follow the location you're viewing: nearest metro within ~170 miles.
+// Teams follow the location you're viewing: nearest area within ~60 miles.
 const METROS=[
-  {name:"Green Bay & Milwaukee",lat:44.2,lon:-88.2,teams:["packers","brewers","bucks","badgers"]},
-  {name:"Madison",lat:43.07,lon:-89.40,teams:["badgers","packers","brewers","bucks"]},
-  {name:"Twin Cities",lat:44.97,lon:-93.26,teams:["vikings","twins","wolves","gophers"]},
-  {name:"Chicago",lat:41.88,lon:-87.63,teams:["bears","cubs","whitesox","bulls"]},
-  {name:"Detroit",lat:42.33,lon:-83.05,teams:["lions","tigers","pistons","wolverines"]},
-  {name:"Cleveland",lat:41.50,lon:-81.69,teams:["browns","guardians","cavaliers","buckeyes"]},
-  {name:"Columbus",lat:39.96,lon:-82.99,teams:["buckeyes","bengals","cavaliers"]},
-  {name:"Cincinnati",lat:39.10,lon:-84.51,teams:["bengals","reds","buckeyes"]},
-  {name:"Indianapolis",lat:39.77,lon:-86.16,teams:["colts","pacers","reds"]},
-  {name:"St. Louis",lat:38.63,lon:-90.20,teams:["cardinals","illini"]},
-  {name:"Kansas City",lat:39.10,lon:-94.58,teams:["chiefs","royals"]},
-  {name:"Des Moines",lat:41.60,lon:-93.60,teams:["hawkeyes","cubs"]},
-  {name:"Omaha & Lincoln",lat:41.00,lon:-96.10,teams:["huskers","chiefs"]}
+  {name:"Merseyside & the Wirral",lat:53.36,lon:-3.00,teams:["liverpool","everton","tranmere","wrexham"]},
+  {name:"Manchester",lat:53.48,lon:-2.24,teams:["mancity","manutd"]}
 ];
 function miBetween(a,b,c,d){ const R=3958.8,t=x=>x*Math.PI/180;
   const s=Math.sin(t(c-a)/2)**2+Math.cos(t(a))*Math.cos(t(c))*Math.sin(t(d-b)/2)**2;
@@ -839,7 +842,7 @@ function miBetween(a,b,c,d){ const R=3958.8,t=x=>x*Math.PI/180;
 function teamsFor(place){
   let best=null,bd=1e9;
   for(const m of METROS){ const dd=miBetween(place.lat,place.lon,m.lat,m.lon); if(dd<bd){bd=dd;best=m;} }
-  return bd<=170 ? {metro:best.name, keys:best.teams} : {metro:null, keys:[]};
+  return bd<=60 ? {metro:best.name, keys:best.teams} : {metro:null, keys:[]};
 }
 
 const _schedCache={};
@@ -847,9 +850,9 @@ function withTimeout(p,ms){ return Promise.race([p, new Promise((_,rej)=>setTime
 function fetchTeam(key){
   if(_schedCache[key]) return _schedCache[key];
   const t=TEAM_DB[key];
-  if(!t){ return Promise.resolve({key,label:key,lg:"nfl",emoji:"🏟️",tag:"",games:null}); }
+  if(!t){ return Promise.resolve({key,label:key,lg:"epl",emoji:"🏟️",tag:"",games:null}); }
   const meta={key,label:t.label,lg:t.lg,emoji:LG[t.lg].emoji,tag:LG[t.lg].tag};
-  const url="https://site.api.espn.com/apis/site/v2/sports/"+t.path+"/schedule";
+  const url="https://site.api.espn.com/apis/site/v2/sports/"+t.path+"/schedule?fixture=true"; // soccer: upcoming fixtures, not past results
   _schedCache[key]=(async()=>{
     try{
       const d=await withTimeout(getJSON(url),6500);
@@ -879,7 +882,7 @@ function teamStatus(team){
   return {today, next};
 }
 function gameWatchCard(sched,tstat,metroName){
-  if(!sched.length) return `<div class="card"><h2>Game watch</h2><p>No teams mapped near here. Search a Midwest city or ZIP to follow its teams, or tap ⚾ in the header to hide sports.</p></div>`;
+  if(!sched.length) return `<div class="card"><h2>Game watch</h2><p>No teams mapped near here. Search somewhere around Merseyside or Manchester to follow the local clubs.</p></div>`;
   const rows=sched.map(t=>{
     const s=tstat[t.key]||{err:true};
     const name=`${t.emoji} ${esc(t.label)} <span class="lgtag">${t.tag}</span>`;
@@ -888,8 +891,8 @@ function gameWatchCard(sched,tstat,metroName){
     if(!g){ return `<div class="game"><span class="gteam">${name}</span><div class="gmeta"><span>offseason</span></div></div>`; }
     const today=!!s.today, live=g.state==="in";
     const vs=(g.home?"vs ":"@ ")+esc(g.opp);
-    const time=g.date.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
-    const when=live?"Live now":(today?("Today · "+time):(g.date.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'})+" · "+time));
+    const time=g.date.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    const when=live?"Live now":(today?("Today · "+time):(g.date.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+" · "+time));
     return `<div class="game ${today?'today':''}"><span class="gteam">${name}</span>
       <div class="gmeta"><b>${vs}</b><span>${when}</span></div>${today?`<span class="gbadge">${live?'Live':'Game day'}</span>`:''}</div>`;
   }).join("");
@@ -963,7 +966,7 @@ function solunar(fc,lat,lng){
   const startUT=Math.floor((Date.now()+offMs)/86400000)*86400000 - offMs;
   const sc=scanMoonDay(startUT,lat,lng);
   const ph=moonPhase(Date.now()), str=solunarStrength(ph.age);
-  const fmt=ms=> ms==null?"—":new Date(ms+offMs).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'UTC'});
+  const fmt=ms=> ms==null?"—":hhmm(ms+offMs);
   const periods=[];
   const add=(center,half,label,major)=>{ if(center==null) return;
     periods.push({label,major,center,range:fmt(center-half*60000)+"–"+fmt(center+half*60000)}); };
@@ -973,7 +976,7 @@ function solunar(fc,lat,lng){
   add(sc.set,45,"Minor · moonset",false);
   periods.sort((a,b)=>a.center-b.center);
   const sr=fc.daily.sunrise?Date.parse(fc.daily.sunrise[0]+"Z"):null, ss=fc.daily.sunset?Date.parse(fc.daily.sunset[0]+"Z"):null;
-  const fl=ms=> ms==null?"—":new Date(ms).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'UTC'});
+  const fl=ms=> ms==null?"—":hhmm(ms);
   let overlap=false;
   [sr,ss].forEach(s=>{ if(s==null) return; periods.forEach(p=>{ if(p.major && Math.abs((p.center+offMs)-s)<90*60000) overlap=true; }); });
   return { phase:ph, strength:str, periods, overlap,
@@ -989,76 +992,101 @@ function fishingReport(x){
   if(p){ if(p.d6<=-1.5) s+=2; else if(p.d6<=-0.5) s+=1; else if(p.d6>=2) s-=1; }
   if([1,2,3,45,48,51,53,61,63,80].includes(x.code)) s+=1;
   if(x.wind>=5&&x.wind<=15) s+=1; else if(x.wind>22) s-=1;
-  if(x.feels>=90) s-=1;
+  if(x.feels>=28) s-=1;
   let why;
-  if(p&&p.d6<=-0.5) why="Pressure's dropping — fish feed hard ahead of a front. Go now, not tomorrow.";
+  if(p&&p.d6<=-0.5) why="Pressure's dropping and fish feed hard ahead of a front. Bass off the rocks, flounder in the channels. Go now, not tomorrow.";
   else if(p&&p.d6>=2) why="High, rising pressure after a front — bluebird lockjaw. Fish deep, slow, and early.";
-  else if(x.wind>22) why="Too much wind to present anything cleanly. Tuck into a sheltered shoreline.";
-  else if(x.feels>=90) why="Hot and bright — dawn, dusk, and after dark are the whole game.";
-  else why="Middling conditions. Lean on the solunar windows and a little walleye chop.";
+  else if(x.wind>22) why="Too much wind to cast cleanly. Tuck in somewhere sheltered or go to the pub.";
+  else if(x.feels>=28) why="Hot and bright. Dawn, dusk and after dark are the whole game.";
+  else why="Middling conditions. Fish the flood tide and lean on the solunar windows.";
   return {rating:ratingOf(s), why};
 }
-function huntingReport(x){
-  let s=x.sol.strength.score; if(x.sol.overlap) s+=1;
-  const p=x.pressure;
-  if(p){ if(p.d6>=1.5) s+=1; if(p.d6<=-1.5) s+=1; }
-  if(x.wind<8) s+=2; else if(x.wind<=15) s+=1; else if(x.wind>20) s-=2;
-  if(x.feels<=40) s+=1; if(x.feels>=68) s-=1;
-  if([65,75,82,86,95,96,99].includes(x.code)) s-=1;
+// Tides: Open-Meteo marine model (nearest sea cell — Liverpool Bay for Neston). Finds high waters.
+async function getTides(lat,lon){
+  try{
+    const d=await withTimeout(getJSON("https://marine-api.open-meteo.com/v1/marine?latitude="+lat+"&longitude="+lon+
+      "&hourly=sea_level_height_msl&timezone=auto&forecast_days=3"),6500);
+    const t=d.hourly&&d.hourly.time, y=d.hourly&&d.hourly.sea_level_height_msl; if(!t||!y) return null;
+    const highs=[];
+    for(let i=1;i<y.length-1;i++){
+      if(y[i]==null||y[i-1]==null||y[i+1]==null) continue;
+      if(y[i]>=y[i-1]&&y[i]>y[i+1]&&y[i]>0){
+        const den=y[i-1]-2*y[i]+y[i+1], off=den?0.5*(y[i-1]-y[i+1])/den:0; // parabolic peak between hourly samples
+        highs.push({ms:Date.parse(t[i]+"Z")+off*3600000, h:y[i]});
+      }
+    }
+    return {highs, off:(d.utc_offset_seconds||0)*1000};
+  }catch(e){ return null; }
+}
+function nextHighTide(tides,fc){
+  if(!tides||!tides.highs.length) return null;
+  const nowL=Date.now()+tides.off, sr=fc.daily.sunrise?fc.daily.sunrise.map(s=>Date.parse(s+"Z")):[], ss=fc.daily.sunset?fc.daily.sunset.map(s=>Date.parse(s+"Z")):[];
+  const hw=tides.highs.find(x=>x.ms>=nowL-30*60000); if(!hw) return null;
+  const dayIdx=fc.daily.time.findIndex(t=>t===new Date(hw.ms).toISOString().slice(0,10));
+  const daylight=dayIdx>=0&&hw.ms>sr[dayIdx]&&hw.ms<ss[dayIdx];
+  const tmr=new Date(hw.ms).toISOString().slice(0,10)!==new Date(nowL).toISOString().slice(0,10);
+  return {time:(tmr?"tomorrow ":"")+hhmm(hw.ms), height:hw.h, daylight};
+}
+// Birding on Parkgate marsh: the big show is a daytime spring tide flooding the saltmarsh.
+function birdingReport(x){
+  const age=x.sol.phase.age, toSpring=Math.min(age, SYN-age, Math.abs(age-SYN/2));
+  const spring=toSpring<=2.5, hw=x.tide;
+  let s=1;
+  if(hw&&hw.daylight) s+=2; if(spring) s+=1; if(spring&&hw&&hw.daylight) s+=1;
+  if(x.wind<10) s+=1; else if(x.wind>20) s-=2;
+  if([63,65,81,82,95,96,99].includes(x.code)) s-=2; else if([61,80,51,53].includes(x.code)) s-=1;
   let why;
-  if(x.wind>20) why="Wind's too high — deer bed down and your scent is everywhere. Tough sit.";
-  else if(p&&p.d6>=1.5&&x.feels<=45) why="Cold and clearing behind a front — textbook daylight deer movement. Get in the stand.";
-  else if(p&&p.d6<=-1.5) why="Front moving in — deer often feed hard just ahead of it. Last light could be stellar.";
-  else if(x.feels>=68) why="Warm for the season — mostly nocturnal movement. Hunt the edges of dawn and dusk.";
-  else if(x.wind<8) why="Light wind, manageable scent. Play the thermals and sit tight.";
-  else why="Workable. Mind your wind direction and hunt the solunar windows.";
-  return {rating:ratingOf(s), why};
+  if([65,82,95,96,99].includes(x.code)) why="Grim on the marsh. Birds hunkered, optics fogged. Watch from the car at the Old Baths or try another day.";
+  else if(spring&&hw&&hw.daylight) why="Spring tide in daylight. Water pushes up to the wall at Parkgate and flushes the marsh: harriers, short-eared owls and water rails running for it. Be at the Old Baths an hour before high water.";
+  else if(x.wind>20) why="Too windy for a scope. The birds are sitting tight in the reeds and so should you.";
+  else if(hw&&hw.daylight) why="Daytime high water, so waders roost close in. Worth a stroll along the prom with the binoculars.";
+  else why="No daytime high tide to push the birds about. Dusk on the marsh is your best bet for harriers and owls.";
+  return {rating:ratingOf(s), why, spring};
 }
 
 /* ================= stay-home verdict ================= */
 function verdict(feels,pop,wind,gust,aqi,code,alertTier){
   const reasons=[]; let score=0;
-  if(alertTier>=3){ score+=5; reasons.push("the National Weather Service is shouting"); }
+  if(alertTier>=3){ score+=5; reasons.push("the Met Office is shouting"); }
   else if(alertTier>=2){ score+=2; reasons.push("there's an active advisory"); }
   if(feels<=-10){ score+=4; reasons.push("feels-like is in frostbite territory"); }
-  else if(feels<=5){ score+=2; reasons.push("it's brutally cold"); }
-  if(feels>=100){ score+=4; reasons.push("the heat index is a health hazard"); }
-  else if(feels>=92){ score+=2; reasons.push("it's oppressively hot"); }
+  else if(feels<=-3){ score+=2; reasons.push("it's properly bitter"); }
+  if(feels>=35){ score+=4; reasons.push("it's dangerously hot"); }
+  else if(feels>=30){ score+=2; reasons.push("it's hotter than the country is built for"); }
   if(gust>=50||wind>=40){ score+=3; reasons.push("the wind will relocate your patio furniture"); }
   else if(wind>=28){ score+=1; reasons.push("it's seriously windy"); }
-  if(aqi!=null&&aqi>200){ score+=4; reasons.push("the air is genuinely unsafe"); }
-  else if(aqi!=null&&aqi>150){ score+=2; reasons.push("the air quality is rough"); }
+  if(aqi!=null&&aqi>100){ score+=4; reasons.push("the air is genuinely unsafe"); }
+  else if(aqi!=null&&aqi>80){ score+=2; reasons.push("the air quality is rough"); }
   if([82,95,96,99].includes(code)){ score+=3; reasons.push("there's a thunderstorm in the mix"); }
   else if([65,75,86].includes(code)){ score+=2; reasons.push("precipitation is coming down hard"); }
   if(pop>=80){ score+=1; reasons.push("it's almost certainly going to rain/snow on you"); }
   let cls,title,blurb;
   if(score>=5){ cls="no"; title="Stay home."; blurb="This is a blanket-and-takeout day — "+joinR(reasons)+". Whatever it is, it can wait."; }
-  else if(score>=2){ cls="maybe"; title="Your call, chief."; blurb="Going out is survivable, but "+joinR(reasons)+". Pack accordingly and lower your expectations."; }
-  else { cls="go"; title="Go live your life."; blurb=reasons.length? "Nothing dramatic out there — just "+joinR(reasons)+". Go be a person." : "Rare, suspicious, almost-perfect conditions. Get outside before the Midwest changes its mind."; }
+  else if(score>=2){ cls="maybe"; title="Your call, mate."; blurb="Going out is survivable, but "+joinR(reasons)+". Pack accordingly and lower your expectations."; }
+  else { cls="go"; title="Go live your life."; blurb=reasons.length? "Nothing dramatic out there — just "+joinR(reasons)+". Go be a person." : "Rare, suspicious, almost-perfect conditions. Get outside before the Irish Sea changes its mind."; }
   return {cls,title,blurb};
 }
 function joinR(a){ if(!a.length) return ""; if(a.length===1) return a[0]; return a.slice(0,-1).join(", ")+" and "+a[a.length-1]; }
 
 function heroQuip(feels,temp,hum,wind,code,isDay){
-  if(feels<0) return "Feels like <b>"+Math.round(feels)+"°</b>. Your nose hairs are about to file a formal complaint. This is the cold that makes you question your life choices and your ZIP code.";
-  if(feels<20) return "A crisp <b>"+Math.round(feels)+"°</b> feels-like. Exposed skin is on a timer. Layer up like you're being deposed.";
-  if(feels>=100) return "Feels like <b>"+Math.round(feels)+"°</b> with "+hum+"% humidity — essentially a locker room that forgot to pay its AC bill. Hydrate or become beef jerky.";
-  if(feels>=90&&hum>=55) return "<b>"+Math.round(temp)+"°</b> and "+hum+"% humidity. The air is less 'weather' and more 'warm soup you have to walk through.' Shower, go outside, repeat.";
-  if(code>=95) return "Thunderstorms on deck. Nature's light show, admission free, seating indoors recommended.";
-  if([71,73,75,77,85,86].includes(code)) return "Snow's falling. Somewhere, four inches is being called 'a dusting' by someone insufferable. Drive like everyone around you forgot how.";
-  if(wind>=28) return "Wind's gusting hard enough to make your hair an independent variable. Hold onto small children and large hats.";
-  if(feels>=68&&feels<=80&&code<=2&&isDay) return "Genuinely, offensively pleasant — <b>"+Math.round(temp)+"°</b> and clear. Deeply suspicious for around here. Go outside before it's rescinded.";
-  if(code>=45&&code<=48) return "Fog's rolled in. Visibility: moody. Perfect weather for pretending you're in a prestige drama.";
+  if(feels<-5) return "Feels like <b>"+Math.round(feels)+"°</b>. Your nose hairs are about to file a formal complaint. The Dee might actually freeze. Kettle on.";
+  if(feels<2) return "A crisp <b>"+Math.round(feels)+"°</b> feels-like. Exposed skin is on a timer. Scrape the car, then scrape it again.";
+  if(feels>=32) return "Feels like <b>"+Math.round(feels)+"°</b>. The whole country is melting and asking why nobody has air con. Hydrate or become a crisp.";
+  if(feels>=26&&hum>=55) return "<b>"+Math.round(temp)+"°</b> and "+hum+"% humidity. Close, sticky and muggy. Expect everyone in the office to say \"it's not the heat, it's the humidity.\"";
+  if(code>=95) return "Thunder about. Nature's light show, free entry, best watched from behind the window.";
+  if([71,73,75,77,85,86].includes(code)) return "Snow! Two centimetres and the whole of the Wirral grinds to a halt. Bread and milk sold out by lunchtime.";
+  if(wind>=28) return "Blowing a hoolie. Your hair is now an independent variable. Bins will be found in neighbouring postcodes.";
+  if(feels>=18&&feels<=25&&code<=2&&isDay) return "Genuinely, offensively pleasant: <b>"+Math.round(temp)+"°</b> and clear. Deeply suspicious. Get to Parkgate for an ice cream before it's rescinded.";
+  if(code>=45&&code<=48) return "Fog's rolled in off the estuary. Visibility: moody. Wales has officially left the chat.";
+  if([51,53,55].includes(code)) return "Drizzle. Not rain exactly, just the air being damp at you. Peak British weather.";
   return "<b>"+Math.round(temp)+"°</b>, "+wmo(code)[0].toLowerCase()+". Not dramatic enough for a story, not boring enough to ignore. Classic.";
 }
 
-/* ================= NWS alerts ================= */
-async function getAlerts(lat,lon){
-  try{
-    const d=await getJSON("https://api.weather.gov/alerts/active?status=actual&point="+lat.toFixed(4)+","+lon.toFixed(4));
-    return (d.features||[]).map(f=>f.properties).filter(p=>p&&p.event);
-  }catch(e){ return []; }
-}
+/* ================= alerts =================
+   Met Office / MeteoAlarm feeds don't allow browser (CORS) access, so there are no in-app
+   alerts. The location bar links straight to the Met Office warnings page for the region. */
+const WARNINGS_URL="https://www.metoffice.gov.uk/weather/warnings-and-advice/uk-warnings#?regionName=nw";
+async function getAlerts(lat,lon){ return []; }
 function sevClass(sev){ const s=(sev||"").toLowerCase();
   if(s==="extreme") return "c-extreme"; if(s==="severe") return "c-severe"; if(s==="moderate") return "c-moderate"; return "c-minor"; }
 function sevTier(alerts){ let t=0; alerts.forEach(a=>{ const s=(a.severity||"").toLowerCase();
@@ -1069,24 +1097,28 @@ function nthWeekday(y,m,wd,n){ let c=0; for(let d=1;d<=31;d++){ const dt=new Dat
 function lastWeekday(y,m,wd){ let last=null; for(let d=1;d<=31;d++){ const dt=new Date(y,m,d); if(dt.getMonth()!==m) break; if(dt.getDay()===wd) last=dt; } return last; }
 function easter(y){ const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,mm=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*mm+114)/31),da=((h+l-7*mm+114)%31)+1; return new Date(y,mo-1,da); }
 function holidaysFor(y){
+  const ez=easter(y), addD=(d,n)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);
   return [
-    ["New Year's Day",new Date(y,0,1),"🎉","newyear","New year, same weather patterns. Hydrate — yesterday was a lot."],
-    ["Groundhog Day",new Date(y,1,2),"🦫","none","A rodent has as much forecasting authority as some apps. Not this one."],
-    ["Valentine's Day",new Date(y,1,14),"❤️","hearts","Love's in the air; so is the cold front. Bring a coat to the date."],
-    ["St. Patrick's Day",new Date(y,2,17),"☘️","lucky","Wear green or get pinched. The wind pinches regardless."],
+    ["New Year's Day",new Date(y,0,1),"🎉","newyear","New year, same drizzle. Hydrate. Last night was a lot."],
+    ["Valentine's Day",new Date(y,1,14),"❤️","hearts","Love's in the air; so is a weather front off the Irish Sea. Bring a coat to the date."],
+    ["St David's Day",new Date(y,2,1),"🏴","none","Dydd Gŵyl Dewi hapus to the neighbours across the Dee. Daffodils out, brolly too."],
+    ["Mothering Sunday",addD(ez,-21),"💐","hearts","Call your mum. She'll ask about the weather; now you know it."],
+    ["St Patrick's Day",new Date(y,2,17),"☘️","lucky","Wear green. The wind will pinch you regardless."],
     ["April Fools' Day",new Date(y,3,1),"🃏","none","The forecast is real. Everything else today is suspect."],
-    ["Easter",easter(y),"🐣","none","Pastels out — but keep the parka handy. Spring here is a rumor."],
-    ["Mother's Day",nthWeekday(y,4,0,2),"💐","hearts","Call your mother. She'll ask about your weather; now you know it."],
-    ["Memorial Day",lastWeekday(y,4,1),"🇺🇸","fireworks","Unofficial start of summer, official start of mosquito season."],
-    ["Juneteenth",new Date(y,5,19),"🕊️","none","A day to reflect — and it's finally warm. Go be outside."],
-    ["Father's Day",nthWeekday(y,5,0,3),"👔","none","Dad wants to grill regardless of the radar. Let him."],
-    ["Independence Day",new Date(y,6,4),"🎆","fireworks","Fireworks tonight — check the storm timing before you commit to the lawn chair."],
-    ["Labor Day",nthWeekday(y,8,1,1),"🛠️","none","Last hurrah of summer. Pretend you don't feel fall sneaking in."],
-    ["Halloween",new Date(y,9,31),"🎃","halloween","Costume over coat is a classic Midwest mistake. Plan the layers, trick-or-treaters."],
-    ["Thanksgiving",nthWeekday(y,10,4,4),"🦃","thanksgiving","Travel weather matters today. Check it before Aunt Linda calls about the roads."],
-    ["Christmas Eve",new Date(y,11,24),"🎄","christmas","Visions of sugarplums, odds of a white Christmas pending below."],
-    ["Christmas",new Date(y,11,25),"🎄","christmas","Merry Christmas. The snow's either magical or a travel nightmare — check below."],
-    ["New Year's Eve",new Date(y,11,31),"🥂","newyear","Dress warm for the countdown. Frostbite is a terrible way to start a year."]
+    ["Good Friday",addD(ez,-2),"✝️","none","Bank holiday weekend starts here, so statistically it will rain."],
+    ["Easter Sunday",ez,"🐣","none","Egg hunt in the garden. Check the radar first, as the eggs are not waterproof."],
+    ["Easter Monday",addD(ez,1),"🐣","none","Bank holiday. Garden centre traffic will be biblical."],
+    ["Early May bank holiday",nthWeekday(y,4,1,1),"🌼","none","First BBQ of the year? Optimistic. We admire it."],
+    ["Spring bank holiday",lastWeekday(y,4,1),"🌷","none","Bank holiday law says it rains. The BBQ forecast below may disagree."],
+    ["Father's Day",nthWeekday(y,5,0,3),"👔","none","Dad wants to BBQ regardless of the radar. Let him."],
+    ["Summer bank holiday",lastWeekday(y,7,1),"☀️","none","Last bank holiday till Christmas. Fire up the grill whatever happens."],
+    ["Halloween",new Date(y,9,31),"🎃","halloween","Costume over a coat is a classic British compromise. Plan the layers, trick-or-treaters."],
+    ["Bonfire Night",new Date(y,10,5),"🎆","fireworks","Remember, remember: check the wind before you light the bonfire. Sparklers need gloves."],
+    ["Remembrance Sunday",nthWeekday(y,10,0,2),"🌺","none","Wrap up warm for the service at the memorial."],
+    ["Christmas Eve",new Date(y,11,24),"🎄","christmas","Odds of a white Christmas on the Wirral: about the same as every year. Slim."],
+    ["Christmas Day",new Date(y,11,25),"🎄","christmas","Merry Christmas. Grey and mild, probably. Check below before the post-dinner walk."],
+    ["Boxing Day",new Date(y,11,26),"🎁","christmas","Leftovers, football, and a bracing walk along the prom."],
+    ["New Year's Eve",new Date(y,11,31),"🥂","newyear","Dress warm for the countdown. Fireworks are no fun with frozen fingers."]
   ].map(h=>({name:h[0],date:h[1],emoji:h[2],theme:h[3],quip:h[4]})).filter(h=>h.date);
 }
 function nextHoliday(){
@@ -1113,47 +1145,6 @@ function renderHoliday(h){
 let _lastPlace=null;
 function sportsEnabled(){ try{ return localStorage.getItem("hwd.sports")!=="off"; }catch(e){ return true; } }
 
-/* ================= NWS official forecast (US primary; overlays Open-Meteo) ================= */
-const NWS_DIR={N:0,NNE:22,NE:45,ENE:67,E:90,ESE:112,SE:135,SSE:157,S:180,SSW:202,SW:225,WSW:247,W:270,WNW:292,NW:315,NNW:337};
-function nwsCode(icon){
-  const m=(icon||"").match(/\/(?:day|night)\/([a-z_]+)/i), tok=m?m[1]:"";
-  if(/tsra|tornado|hurricane/.test(tok)) return 95;
-  if(/blizzard/.test(tok)) return 75;
-  if(/snow/.test(tok)) return 73;
-  if(/fzra|sleet|ice|freezing/.test(tok)) return 66;
-  if(/rain_showers|shra/.test(tok)) return 80;
-  if(/rain/.test(tok)) return 63;
-  if(/fog|haze|smoke|dust/.test(tok)) return 45;
-  if(/ovc|bkn/.test(tok)) return 3;
-  if(/sct/.test(tok)) return 2;
-  if(/few/.test(tok)) return 1;
-  if(/skc|clear/.test(tok)) return 0;
-  return 2;
-}
-function parseMph(s){ const m=(s||"").match(/(\d+)(?!.*\d)/); return m?+m[1]:0; }
-function feelsLike(tF,rh,mph){
-  if(tF>=80 && rh!=null){ const T=tF,R=rh;
-    return Math.round(-42.379+2.04901523*T+10.14333127*R-0.22475541*T*R-0.00683783*T*T-0.05481717*R*R+0.00122874*T*T*R+0.00085282*T*R*R-0.00000199*T*T*R*R); }
-  if(tF<=50 && mph>=3){ const V=Math.pow(mph,0.16); return Math.round(35.74+0.6215*tF-35.75*V+0.4275*tF*V); }
-  return Math.round(tF);
-}
-async function nwsForecast(lat,lon){
-  try{
-    const pts=await withTimeout(getJSON(`https://api.weather.gov/points/${lat.toFixed(4)},${lon.toFixed(4)}`),6500);
-    const url=pts&&pts.properties&&pts.properties.forecastHourly; if(!url) return null; // outside US -> null
-    const d=await withTimeout(getJSON(url),7000);
-    const per=(d.properties&&d.properties.periods)||[]; if(!per.length) return null;
-    const toF=p=>p.temperatureUnit==="C"?p.temperature*9/5+32:p.temperature;
-    const hours=per.map(p=>({ t:(p.startTime||"").slice(0,16), temp:toF(p),
-      pop:(p.probabilityOfPrecipitation&&p.probabilityOfPrecipitation.value)||0,
-      rh:(p.relativeHumidity&&p.relativeHumidity.value), wind:parseMph(p.windSpeed),
-      code:nwsCode(p.icon), isDay:p.isDaytime?1:0 }));
-    const c=per[0];
-    return { source:"NWS", hours, current:{ temp:toF(c), rh:(c.relativeHumidity&&c.relativeHumidity.value),
-      wind:parseMph(c.windSpeed), windDir:(NWS_DIR[(c.windDirection||"").toUpperCase()]), code:nwsCode(c.icon), isDay:c.isDaytime?1:0 } };
-  }catch(e){ return null; }
-}
-
 async function go(place){
   savePlace(place); _lastPlace=place; rememberLocation(place); $("#q").value="";
   showMsg('<span class="spin"></span>&nbsp;&nbsp;Reading the clouds over '+esc(place.name||"there")+"…",true);
@@ -1163,14 +1154,14 @@ async function go(place){
     "&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_gusts_10m,wind_direction_10m"+
     "&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,weather_code,cloud_cover,is_day,pressure_msl,wind_speed_10m"+
     "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max,uv_index_max,sunrise,sunset"+
-    "&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=auto&forecast_days=10";
+    "&temperature_unit=celsius&wind_speed_unit=mph&precipitation_unit=mm&timezone=auto&forecast_days=10";
   const aUrl="https://air-quality-api.open-meteo.com/v1/air-quality?latitude="+lat+"&longitude="+lon+
-    "&current=us_aqi,pm2_5,pm10,ozone,nitrogen_dioxide&timezone=auto";
+    "&current=european_aqi,pm2_5,pm10,ozone,nitrogen_dioxide&timezone=auto";
   try{
     const tm = teamsFor(place);
     const schedP = tm.keys.length ? getSchedules(tm.keys) : Promise.resolve([]);
-    const [fc, air, alerts, schedules, nws] = await Promise.all([ getJSON(fUrl), getJSON(aUrl).catch(()=>null), getAlerts(lat,lon), schedP, nwsForecast(lat,lon).catch(()=>null) ]);
-    fc._nws = nws; // official US forecast overlays Open-Meteo where present
+    const [fc, air, alerts, schedules, tides] = await Promise.all([ getJSON(fUrl), getJSON(aUrl).catch(()=>null), getAlerts(lat,lon), schedP, getTides(lat,lon) ]);
+    fc._tides = tides;
     render(place, fc, air, alerts, {list:schedules, metro:tm.metro});
   }catch(err){ showMsg("The forecast servers ghosted us. "+esc(err.message||"")+" — try again or pick another spot.",false); }
 }
@@ -1182,24 +1173,14 @@ function dailyHumidity(fc){
 }
 
 function hourlyCards(fc){
-  const off=(fc.utc_offset_seconds||0)*1000, nowU=Date.now()+off, N=fc._nws;
-  if(N){ let s=N.hours.findIndex(x=>Date.parse(x.t+"Z")>=nowU-3600000); if(s<0) s=0;
-    const e=Math.min(s+24,N.hours.length); let o="";
-    for(let i=s;i<e;i++){ const x=N.hours[i], u=Date.parse(x.t+"Z");
-      const label=i===s?"Now":new Date(u).toLocaleTimeString('en-US',{hour:'numeric',timeZone:'UTC'}).replace(" ","");
-      let [,ic]=wmo(x.code); if((x.code===0||x.code===1)&&!x.isDay) ic="🌙";
-      const pop=Math.round(x.pop||0);
-      o+=`<div class="hour"><div class="hr">${label}</div><div class="hic" aria-hidden="true">${ic}</div>`+
-         `<div class="ht">${Math.round(x.temp)}°</div><div class="hp ${pop>=40?'wet':''}">${pop>0?('💧'+pop+'%'):'·'}</div></div>`; }
-    return o;
-  }
+  const off=(fc.utc_offset_seconds||0)*1000, nowU=Date.now()+off;
   const h=fc.hourly;
   let start=h.time.findIndex(t=>Date.parse(t+"Z")>=nowU-3600000);
   if(start<0) start=0;
   const end=Math.min(start+24,h.time.length); let out="";
   for(let i=start;i<end;i++){
     const u=Date.parse(h.time[i]+"Z");
-    const label = i===start ? "Now" : new Date(u).toLocaleTimeString('en-US',{hour:'numeric',timeZone:'UTC'}).replace(" ","");
+    const label = i===start ? "Now" : hhmm(u);
     const code=h.weather_code[i], day=h.is_day?h.is_day[i]:1;
     let [,ic]=wmo(code); if((code===0||code===1)&&!day) ic="🌙";
     const t=Math.round(h.temperature_2m[i]);
@@ -1212,19 +1193,12 @@ function hourlyCards(fc){
 
 function render(place, fc, air, alerts, sports){
   const cur=fc.current, d=fc.daily;
-  const N=fc._nws, offMs0=(fc.utc_offset_seconds||0)*1000, todayStr0=new Date(Date.now()+offMs0).toISOString().slice(0,10);
-  let temp,feels,hum,wind,gust,code,isDay,windDir;
-  if(N){ temp=N.current.temp; hum=(N.current.rh!=null?N.current.rh:cur.relative_humidity_2m); wind=N.current.wind;
-    gust=cur.wind_gusts_10m; code=N.current.code; isDay=N.current.isDay===1; windDir=(N.current.windDir!=null?N.current.windDir:cur.wind_direction_10m);
-    feels=feelsLike(temp,hum,wind); }
-  else { temp=cur.temperature_2m; feels=cur.apparent_temperature; hum=cur.relative_humidity_2m;
-    wind=cur.wind_speed_10m; gust=cur.wind_gusts_10m; code=cur.weather_code; isDay=cur.is_day===1; windDir=cur.wind_direction_10m; }
-  const aqi = air && air.current ? air.current.us_aqi : null;
+  const temp=cur.temperature_2m, feels=cur.apparent_temperature, hum=cur.relative_humidity_2m,
+    wind=cur.wind_speed_10m, gust=cur.wind_gusts_10m, code=cur.weather_code, isDay=cur.is_day===1, windDir=cur.wind_direction_10m;
+  const aqi = air && air.current ? air.current.european_aqi : null;
   const cloudPct = (cur && cur.cloud_cover!=null) ? Math.round(cur.cloud_cover) : null; // honest sky read (Open-Meteo)
   const cloudC = cloudWord(cloudPct);
-  let pop0;
-  if(N){ let p=0; N.hours.forEach(h=>{ if(h.t.slice(0,10)===todayStr0 && (h.pop||0)>p) p=h.pop; }); pop0=Math.round(p); }
-  else pop0 = d.precipitation_probability_max ? d.precipitation_probability_max[0] : 0;
+  const pop0 = d.precipitation_probability_max ? d.precipitation_probability_max[0] : 0;
   const uv0 = d.uv_index_max ? d.uv_index_max[0] : 0;
   const tier = sevTier(alerts);
   const [condLabel,glyph]=wmo(code);
@@ -1249,7 +1223,7 @@ function render(place, fc, air, alerts, sports){
   const pro=premiumUnlocked();
   const bbq=pro?bbqReport(fc,cur):null;
   const cat=aqiCat(aqi);
-  const aqiPct = aqi==null?0:Math.max(2,Math.min(100,(aqi/400)*100));
+  const aqiPct = aqi==null?0:Math.max(2,Math.min(100,(aqi/120)*100));
   const dayHum=dailyHumidity(fc);
   const now=new Date();
 
@@ -1259,25 +1233,17 @@ function render(place, fc, air, alerts, sports){
   const sched = (sports&&sports.list)||[];
   const metroName = sports&&sports.metro;
   const tstat={}; sched.forEach(t=>{ tstat[t.key]=teamStatus(t); });
-  const todayLeagues=new Set(sched.filter(t=>tstat[t.key]&&tstat[t.key].today).map(t=>t.lg));
-  const footballToday=todayLeagues.has("nfl")||todayLeagues.has("ncaaf");
-  const baseballToday=todayLeagues.has("mlb");
-  const basketballToday=todayLeagues.has("nba");
-  const gameTodaySport = footballToday?"football":(baseballToday?"baseball":null);
+  const footballToday=sched.some(t=>tstat[t.key]&&tstat[t.key].today);
+  const gameTodaySport = footballToday?"football":null;
 
   let lines=sportsLines(feels,temp,wind,gust,pop0,code);
   lines.forEach(l=>{
-    if(l.key==="baseball" && !sea.baseball){ l.text="Offseason. The only things flying are free-agent rumors and the grounds crew's day off."; l.lean="Offseason"; l.cls="push"; }
-    if(l.key==="football" && !sea.football){ l.text="Offseason. The tundra rests; mock drafts and regret fill the void."; l.lean="Offseason"; l.cls="push"; }
-    if(l.key==="golf" && !sea.golf){ l.text="Course would be frozen or underwater. This is a simulator-and-a-beer situation."; l.lean="Closed"; l.cls="push"; }
-    if(gameTodaySport && l.key===gameTodaySport){ l.text="🚨 Game day. "+l.text; }
+    if(l.key==="cricket" && !sea.cricket){ l.text="Out of season. The covers are on till April and the groundsman is finally having a lie-in."; l.lean="Off-season"; l.cls="push"; }
+    if(l.key==="football" && !sea.football){ l.text="Close season. Transfer rumours and pre-season friendlies in the sunshine fill the void."; l.lean="Off-season"; l.cls="push"; }
+    if(l.key==="rugby" && !sea.rugby){ l.text="Off-season. The props are on a beach somewhere, terrifying the locals."; l.lean="Off-season"; l.cls="push"; }
+    if(gameTodaySport && l.key===gameTodaySport){ l.text="🚨 Match day. "+l.text; }
   });
-  if(basketballToday){ const bt=sched.find(t=>t.lg==="nba"&&tstat[t.key]&&tstat[t.key].today);
-    lines.push({icon:"🏀",sport:"Hoops",key:"hoops",lean:"Indoors",cls:"push",
-      text:"🚨 "+(bt?bt.label:"The local five")+" tonight — indoors, climate-controlled, gloriously weatherproof. No excuses."}); }
-  const otherTeam = sea.primary==="football"?"baseball":"football";
-  const ord=[]; const seenK=new Set();
-  [gameTodaySport, basketballToday?"hoops":null, sea.primary, otherTeam, "golf","tailgate","hoops"].forEach(k=>{ if(k&&!seenK.has(k)){ seenK.add(k); ord.push(k); } });
+  const ord=[gameTodaySport, sea.primary, "football", "rugby", "cricket", "pubgarden"].filter((k,i,a)=>k&&a.indexOf(k)===i);
   const rankK=k=>{ const i=ord.indexOf(k); return i<0?99:i; };
   lines.sort((a,b)=>rankK(a.key)-rankK(b.key));
 
@@ -1286,30 +1252,31 @@ function render(place, fc, air, alerts, sports){
 
   // Premium outdoor tools (golf + field & stream) — gated
   lines=lines.filter(l=>l.key!=="golf"); // golf graduated to the Premium Golf forecast
-  let golf,pInfo,sol,fish,hunt;
+  let golf,pInfo,sol,fish,bird,tide;
   if(pro){
     golf=golfReport(fc,cur);
     pInfo=pressureInfo(fc);
     sol=solunar(fc, place.lat, place.lon);
     fish=fishingReport({feels,wind,code,pressure:pInfo,sol});
-    hunt=huntingReport({feels,wind,code,pressure:pInfo,sol});
+    tide=nextHighTide(fc._tides,fc);
+    bird=birdingReport({feels,wind,code,sol,tide});
   }
 
   const placeLabel = place.admin1 ? `${esc(place.name)}, <span>${esc(place.admin1)}</span>` : esc(place.name||"Your location");
   _snap={
     place: place.admin1 ? `${place.name}, ${place.admin1}` : (place.name||"Your location"),
-    dateline: now.toLocaleDateString([], {weekday:"long",month:"short",day:"numeric"})+" · "+now.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"}),
+    dateline: now.toLocaleDateString("en-GB", {weekday:"long",day:"numeric",month:"short"})+" · "+now.toLocaleTimeString("en-GB", {hour:"2-digit",minute:"2-digit"}),
     tempR: Math.round(temp), feelsR: Math.round(feels), cond: condLabel, glyph,
     verdict: vq.title, quip: heroQuip(feels,temp,hum,wind,code,isDay).replace(/<[^>]+>/g,""),
     alert: alerts.length ? {event:alerts[0].event, headline:(alerts[0].headline||"")} : null
   };
   { const lb=$("#locbar"); if(lb){ lb.hidden=false;
-    lb.innerHTML=`<span class="lcity">${esc(_snap.place)}</span><span class="lmeta">Updated ${now.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"})}${N?" · NWS":""}</span>`; } }
+    lb.innerHTML=`<span class="lcity">${esc(_snap.place)}</span><span class="lmeta">Updated ${now.toLocaleTimeString("en-GB", {hour:"2-digit",minute:"2-digit"})} · <a href="${WARNINGS_URL}" target="_blank" rel="noopener">Met Office warnings ↗</a></span>`; } }
 
   // tile + chart data
   const hiT=Math.round(d.temperature_2m_max[0]), loT=Math.round(d.temperature_2m_min[0]);
   const fdiff=Math.round(feels)-Math.round(temp), fdiffSub=fdiff<0?(-fdiff)+"° cooler":(fdiff>0?fdiff+"° warmer":"like actual");
-  const dewv=dewPointF(temp,hum), mp=moonPhase(Date.now()), uvc=uvCat(uv0);
+  const dewv=dewPointC(temp,hum), mp=moonPhase(Date.now()), uvc=uvCat(uv0);
   const nowL=Date.now()+(fc.utc_offset_seconds||0)*1000;
   const srMs=d.sunrise?Date.parse(d.sunrise[0]+"Z"):null, ssMs=d.sunset?Date.parse(d.sunset[0]+"Z"):null;
   let sunIcon="🌅",sunTitle="Sunrise",sunVal="—",sunSub="";
@@ -1319,8 +1286,8 @@ function render(place, fc, air, alerts, sports){
     else { const sr2=d.sunrise[1]?Date.parse(d.sunrise[1]+"Z"):null; sunVal=fmtHM(sr2||srMs); sunSub=sr2?("in "+dur(sr2-nowL)):"tomorrow"; }
   }
   _trend={ nowMs:nowL,
-    ht:(N?N.hours.map(h=>Date.parse(h.t+"Z")):fc.hourly.time.map(t=>Date.parse(t+"Z"))),
-    htemp:(N?N.hours.map(h=>h.temp):fc.hourly.temperature_2m),
+    ht:fc.hourly.time.map(t=>Date.parse(t+"Z")),
+    htemp:fc.hourly.temperature_2m,
     dt:d.time.map(t=>Date.parse(t+"T12:00:00Z")), dhi:d.temperature_2m_max, dlo:d.temperature_2m_min };
 
   content.innerHTML=`
@@ -1338,7 +1305,7 @@ function render(place, fc, air, alerts, sports){
       ${tileHTML("🌬️","Wind",Math.round(wind)+" mph",(windDir!=null?compass(windDir)+" · ":"")+"gust "+Math.round(gust),"var(--accent)")}
       ${tileHTML("💦","Humidity",hum+"%",humWord(hum),"var(--accent)")}
       ${tileHTML(sunIcon,sunTitle,sunVal,sunSub,"var(--amber)")}
-      ${tileHTML("✨","Air Quality",aqi==null?"—":Math.round(aqi),"US AQI · "+cat.label,cat.color)}
+      ${tileHTML("✨","Air Quality",aqi==null?"—":Math.round(aqi),"EU AQI · "+cat.label,cat.color)}
       ${tileHTML("🌫️","Dew Point",Math.round(dewv)+"°",dewWord(dewv),"var(--accent)")}
       ${tileHTML(mp.emoji,"Moon",mp.illum+"%",mp.name,"var(--accent)")}
       ${tileHTML("☀️","UV Index",Math.round(uv0),uvc.label,uvc.color)}
@@ -1360,7 +1327,7 @@ function render(place, fc, air, alerts, sports){
       <div class="card"><h2>Should you stay home?</h2><div class="verdict ${vq.cls}">${vq.title}</div><p>${vq.blurb}</p></div>
       <div class="card"><h2>What to wear</h2><div class="verdict" style="font-size:1.15rem;color:var(--ink)">${wear.lead}</div>
         <ul class="wear-list">${wear.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>
-      <div class="card"><h2>Air quality · US AQI</h2>
+      <div class="card"><h2>Air quality · European AQI</h2>
         <div class="aqi-num"><b style="color:${cat.color}">${aqi==null?"—":Math.round(aqi)}</b><span class="aqi-cat" style="color:${cat.color}">${cat.label}</span></div>
         <div class="gauge"><div class="pin" style="left:${aqiPct}%"></div></div>
         <p>${cat.note}${air&&air.current&&air.current.pm2_5!=null?` <span style="font-family:var(--mono);font-size:.78rem">PM2.5 ${Math.round(air.current.pm2_5)} µg/m³</span>`:""}</p></div>
@@ -1369,21 +1336,23 @@ function render(place, fc, air, alerts, sports){
       ${pro ? `<div class="card"><h2>BBQ forecast</h2>
         <div class="verdict ${bbq.vc}">${bbq.label}</div>
         <p>${bbq.why}</p>
-        <p style="margin-top:8px">${bbq.window?`<b>Best window today:</b> ${bbq.window}`:`No clean grilling window left today — tomorrow's another cookout.`}</p>
+        <p style="margin-top:8px">${bbq.window?`<b>Best window today:</b> ${bbq.window}`:`No clean grilling window left today. Tomorrow's another cookout.`}</p>
+        <div class="factors" style="margin-top:10px">${bbq.week.days.map(x=>`<span class="factor" title="${x.hi}°, ${x.pop}% rain">${x.dow} ${x.mark}</span>`).join("")}</div>
+        <p style="margin-top:8px">${bbq.week.pick}</p>
         <p class="disclaim" style="margin-top:10px">🔥 ${bbq.smoker}</p></div>`
-      : lockedCard("BBQ forecast","Grill verdict, the best grilling window today, and a low-and-slow smoker note.")}
+      : lockedCard("BBQ forecast","Grill verdict, the best grilling window today, the best BBQ day this week, and a low-and-slow smoker note.")}
     </div>
     </section>
 
     <section class="tab-panel" data-panel="sports" hidden>
-    <div class="section-head"><h2>The Ballpark Report</h2><small>weather vs. the game</small><span class="season-tag">${sea.label}</span></div>
+    <div class="section-head"><h2>The Terrace Report</h2><small>weather vs. the game</small><span class="season-tag">${sea.label}</span></div>
     <div class="grid">
       ${gameWatchCard(sched, tstat, metroName)}
       <div class="card"><h2>The weather line</h2>
         <div class="lines">${lines.map(l=>
           `<div class="line"><span class="lg" aria-hidden="true">${l.icon}</span><div class="lx"><b>${l.sport}.</b> ${l.text}</div><span class="lean ${l.cls}">${l.lean}</span></div>`).join("")}</div>
-        <p class="disclaim">Entertainment only, not betting advice. The only lock is that the weather will let you down.</p></div>
-      <div class="card"><h2>Dressing for the bleachers</h2>
+        <p class="disclaim">Entertainment only, not betting advice. The only certainty is that the weather will let you down.</p></div>
+      <div class="card"><h2>Dressing for the terraces</h2>
         ${(()=>{const bp=bleacherWear(feels,pop0,wind,uv0,code,eveningFeels(fc));
           return `<div class="verdict" style="font-size:1.1rem;color:var(--ink)">${bp.lead}</div>
             <ul class="wear-list">${bp.items.map(i=>`<li>${i}</li>`).join("")}</ul>
@@ -1393,9 +1362,9 @@ function render(place, fc, air, alerts, sports){
     </section>
 
     <section class="tab-panel" data-panel="nature" hidden>
-    <div class="section-head"><h2>Field &amp; Stream</h2><small>golf · hunting · fishing · solunar</small><span class="pro-tag">Premium</span></div>
+    <div class="section-head"><h2>Shore &amp; Fairway</h2><small>golf · birding · fishing · tides</small><span class="pro-tag">Premium</span></div>
     ${pro ? `<div class="grid">
-      <div class="card"><h2>Golf — playability</h2>
+      <div class="card"><h2>Golf · playability</h2>
         <div class="verdict ${golf.vc}">${golf.label}</div>
         <div class="factors">
           <span class="factor">💨 ${(windDir!=null?compass(windDir)+" ":"")}${golf.wind} mph</span>
@@ -1405,7 +1374,7 @@ function render(place, fc, air, alerts, sports){
         <p>${golf.why}</p>
         <p style="margin-top:8px">${golf.window?`<b>Best tee window:</b> ${golf.window}`:`No clean tee window left today.`}</p></div>
 
-      <div class="card"><h2>Fishing — the bite</h2>
+      <div class="card"><h2>Sea fishing · the bite</h2>
         <div class="verdict ${fish.rating.vc}">${fish.rating.label}</div>
         <div class="factors">
           <span class="factor">${sol.phase.emoji} ${esc(sol.phase.name)}</span>
@@ -1414,15 +1383,15 @@ function render(place, fc, air, alerts, sports){
         </div>
         <p>${fish.why}</p></div>
 
-      <div class="card"><h2>Hunting — deer movement</h2>
-        <div class="verdict ${hunt.rating.vc}">${hunt.rating.label}</div>
+      <div class="card"><h2>Birding · Parkgate marsh</h2>
+        <div class="verdict ${bird.rating.vc}">${bird.rating.label}</div>
         <div class="factors">
-          <span class="factor">🌬️ Wind ${(windDir!=null?compass(windDir)+" ":"")}${Math.round(wind)}</span>
-          ${pInfo?`<span class="factor">📊 ${pInfo.arrow} ${esc(pInfo.trend)}</span>`:""}
-          <span class="factor">🌡️ ${Math.round(feels)}° feels</span>
-          <span class="factor">${sol.phase.emoji} ${esc(sol.phase.name)}</span>
+          <span class="factor">🌊 HW ${tide?tide.time:"—"}${tide&&!tide.daylight?" (dark)":""}</span>
+          <span class="factor">${bird.spring?"🌕 Spring tides":"🌗 Neap-ish"}</span>
+          <span class="factor">🌬️ ${(windDir!=null?compass(windDir)+" ":"")}${Math.round(wind)} mph</span>
         </div>
-        <p>${hunt.why}</p></div>
+        <p>${bird.why}</p>
+        <p class="disclaim">High water is a model estimate for Liverpool Bay and can be out by half an hour or more. Check official tide tables, and never walk out onto the marsh or the sandbanks.</p></div>
 
       <div class="card"><h2>Solunar &amp; moon</h2>
         <div class="moonbig"><div class="mp" aria-hidden="true">${sol.phase.emoji}</div>
@@ -1433,18 +1402,18 @@ function render(place, fc, air, alerts, sports){
           <div class="period"><span class="pk">Dusk window</span><b>${sol.dusk||"—"}</b></div>
         </div>
         <p class="disclaim">Sun ${sol.sun.rise}–${sol.sun.set}. Solunar windows computed from moon position — guides, not gospel.</p></div>
-    </div>` : `<div class="grid">${lockedCard("Field & Stream","Golf tee-time playability, fishing bite & hunting deer-movement ratings, solunar feeding windows, moon phase and the barometric pressure trend — the data that actually predicts the outdoors.")}</div>`}
+    </div>` : `<div class="grid">${lockedCard("Shore & Fairway","Golf playability, sea-fishing bite and Parkgate marsh birding ratings, high tide, solunar windows, moon phase and the pressure trend.")}</div>`}
     </section>
 
     <section class="tab-panel" data-panel="forecast" hidden>
     <div class="section-head"><h2>Today, Hour by Hour</h2><small>next 24 hours</small></div>
     <div class="hours">${hourlyCards(fc)}</div>
 
-    <div class="section-head"><h2>The 10-Day</h2><small>what NOAA's models expect</small></div>
+    <div class="section-head"><h2>The 10-Day</h2><small>what the models expect</small></div>
     <div class="strip">${d.time.map((iso,i)=>dayCard(iso,i,d,dayHum)).join("")}</div>
     </section>
   `;
-  $("#srcLine").textContent=(N?"Forecast: NWS (official) + Open-Meteo. ":"Forecast: Open-Meteo. ")+"Pulled "+now.toLocaleString()+". Not a substitute for official warnings — if a siren goes off, don't finish reading this app.";
+  $("#srcLine").textContent="Forecast: Open-Meteo. Pulled "+now.toLocaleString("en-GB")+". Not a substitute for official warnings. If the Met Office says amber, believe them over this app.";
   initTrend();
   showTab(currentTab());
 }
@@ -1452,15 +1421,15 @@ function render(place, fc, air, alerts, sports){
 function chip(k,v){ return `<div class="chip"><span class="k">${k}</span><span class="v">${v}</span></div>`; }
 function humidityNote(h,t){
   if(h>=80) return "Soup. The air is basically wet. Your hair has opinions and they're all frizzy.";
-  if(h>=65) return t>=78?"Sticky and warm — the kind of muggy that makes a cold shower feel like a personality.":"On the humid side. Clammy, not catastrophic.";
+  if(h>=65) return t>=24?"Close and muggy — the kind of muggy that makes a cold shower feel like a personality.":"On the humid side. Clammy, not catastrophic.";
   if(h>=40) return "Comfortable, actually. Enjoy this rare meteorological mercy.";
   if(h>=25) return "Dry. Moisturizer and a water glass wouldn't hurt.";
   return "Desert-dry. Static shocks incoming — stop touching doorknobs like a rookie.";
 }
 function dayCard(iso,i,d,dayHum){
   const dt=new Date(iso+"T12:00:00");
-  const dow = i===0 ? "Today" : dt.toLocaleDateString([], {weekday:"short"});
-  const date = dt.toLocaleDateString([], {month:"numeric",day:"numeric"});
+  const dow = i===0 ? "Today" : dt.toLocaleDateString("en-GB", {weekday:"short"});
+  const date = dt.toLocaleDateString("en-GB", {day:"numeric",month:"numeric"});
   const [,ic]=wmo(d.weather_code[i]);
   const hi=Math.round(d.temperature_2m_max[i]), lo=Math.round(d.temperature_2m_min[i]);
   const pop=Math.round(d.precipitation_probability_max?d.precipitation_probability_max[i]:0);
@@ -1478,7 +1447,7 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;",
    ====================================================================== */
 const sky=document.getElementById("sky"), sx=sky.getContext("2d");
 let W=0,H=0,DPR=1;
-let scene={code:0,night:false,theme:null,lat:44.4489,lng:-88.0604,cover:0,storm:false,flash:0,flashT:60};
+let scene={code:0,night:false,theme:null,lat:53.2911,lng:-3.0647,cover:0,storm:false,flash:0,flashT:60};
 let L={stars:[],rain:[],snow:[],holi:[]};
 
 function kindOf(code){
@@ -1714,9 +1683,9 @@ function buildCard(){
   x.fillStyle=g; x.fillRect(0,0,S,S);
   const rg=x.createRadialGradient(S*0.8,S*0.12,0,S*0.8,S*0.12,S*0.62); rg.addColorStop(0,css(acc,0.28)); rg.addColorStop(1,css(acc,0));
   x.fillStyle=rg; x.fillRect(0,0,S,S);
-  const s=_snap||{place:"Heartland Weather Desk",dateline:"",tempR:"—",feelsR:"—",cond:"",glyph:"🌡️",verdict:"",quip:"",alert:null};
+  const s=_snap||{place:"Neston Weather Desk",dateline:"",tempR:"—",feelsR:"—",cond:"",glyph:"🌡️",verdict:"",quip:"",alert:null};
   const pad=84;
-  x.fillStyle=css(acc); x.font="700 32px 'IBM Plex Mono',monospace"; x.fillText("HEARTLAND WEATHER DESK",pad,108);
+  x.fillStyle=css(acc); x.font="700 32px 'IBM Plex Mono',monospace"; x.fillText("NESTON WEATHER DESK",pad,108);
   x.fillStyle="#fff"; x.font="700 60px 'IBM Plex Sans',sans-serif"; x.fillText(s.place.slice(0,34),pad,188);
   x.fillStyle="rgba(255,255,255,.7)"; x.font="400 30px 'IBM Plex Sans',sans-serif"; x.fillText(s.dateline,pad,236);
   x.font="160px serif"; x.textAlign="right"; x.fillText(s.glyph,S-pad,452); x.textAlign="left";
@@ -1731,28 +1700,28 @@ function buildCard(){
   x.fillStyle="rgba(255,255,255,.9)"; x.font="400 36px 'IBM Plex Sans',sans-serif";
   _wrap(x,s.quip,pad,yy+42,S-2*pad,48,4);
   x.fillStyle="rgba(255,255,255,.58)"; x.font="400 25px 'IBM Plex Mono',monospace";
-  x.fillText("teskemj.github.io/ai · data: NWS + Open-Meteo",pad,S-56);
+  x.fillText("mattlloyddavies.github.io/neston-weather · data: Open-Meteo",pad,S-56);
   return c;
 }
 async function shareCard(){
   try{ if(document.fonts&&document.fonts.ready) await document.fonts.ready; }catch(e){}
   const c=buildCard();
   const blob=await new Promise(r=>c.toBlob(r,"image/png",0.95)); if(!blob) return;
-  const file=new File([blob],"heartland-weather.png",{type:"image/png"});
+  const file=new File([blob],"neston-weather.png",{type:"image/png"});
   const s=_snap||{}, text=(s.place?s.place+": ":"")+(s.tempR!=null?s.tempR+"° "+(s.cond||""):"")+(s.alert?" — ⚠ "+s.alert.event:(s.verdict?" — "+s.verdict:""));
-  const url="https://teskemj.github.io/ai/";
+  const url="https://mattlloyddavies.github.io/neston-weather/";
   const C=window.Capacitor;
   if(C && C.isNativePlatform && C.isNativePlatform() && C.Plugins && C.Plugins.Share && C.Plugins.Filesystem){
     try{ const b64=c.toDataURL("image/png").split(",")[1], fn="hwd-"+Date.now()+".png";
       const w=await C.Plugins.Filesystem.writeFile({path:fn,data:b64,directory:"CACHE"});
-      await C.Plugins.Share.share({title:"Heartland Weather Desk",text,url:w.uri}); return;
+      await C.Plugins.Share.share({title:"Neston Weather Desk",text,url:w.uri}); return;
     }catch(e){}
   }
   if(navigator.canShare && navigator.canShare({files:[file]})){
-    try{ await navigator.share({files:[file],title:"Heartland Weather Desk",text}); return; }
+    try{ await navigator.share({files:[file],title:"Neston Weather Desk",text}); return; }
     catch(e){ if(e&&e.name==="AbortError") return; }
   }
-  try{ const u=URL.createObjectURL(blob),a=document.createElement("a"); a.href=u; a.download="heartland-weather.png";
+  try{ const u=URL.createObjectURL(blob),a=document.createElement("a"); a.href=u; a.download="neston-weather.png";
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000); }catch(e){}
   try{ if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(text+" — "+url).catch(()=>{}); }catch(e){}
 }
@@ -1797,12 +1766,12 @@ function tileHTML(icon,label,value,sub,color,lead){
   return `<div class="tile${lead?" lead":""}"><div class="tlabel">${icon} ${esc(label)}</div>`+
     `<div class="tval"${color?` style="color:${color}"`:""}>${value}</div><div class="tsub">${esc(sub)}</div></div>`;
 }
-function humWord(h){ return h>=80?"Muggy":h>=65?"Humid":h>=40?"Comfortable":h>=25?"Dry":"Very dry"; }
-function dewPointF(tF,rh){ const tC=(tF-32)*5/9,a=17.625,b=243.04,g=Math.log(Math.max(1,rh)/100)+(a*tC)/(b+tC); return ((b*g)/(a-g))*9/5+32; }
-function dewWord(d){ return d<50?"Comfortable":d<60?"Slightly humid":d<65?"Humid":d<70?"Oppressive":"Miserable"; }
+function humWord(h){ return h>=80?"Damp":h>=65?"Humid":h>=40?"Comfortable":h>=25?"Dry":"Very dry"; }
+function dewPointC(tC,rh){ const a=17.625,b=243.04,g=Math.log(Math.max(1,rh)/100)+(a*tC)/(b+tC); return (b*g)/(a-g); }
+function dewWord(d){ return d<10?"Comfortable":d<15?"Slightly humid":d<18?"Close":d<21?"Oppressive":"Miserable"; }
 function uvCat(u){ u=Math.round(u); if(u<=2) return {label:"Low",color:"var(--good)"}; if(u<=5) return {label:"Moderate",color:"var(--warn)"};
   if(u<=7) return {label:"High",color:"#e08a2e"}; if(u<=10) return {label:"Very high",color:"var(--bad)"}; return {label:"Extreme",color:"var(--crit)"}; }
-function fmtHM(ms){ return new Date(ms).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit",timeZone:"UTC"}); }
+function fmtHM(ms){ return hhmm(ms); }
 function dur(ms){ const m=Math.max(0,Math.round(ms/60000)),h=Math.floor(m/60),mm=m%60; return h?`${h}h ${mm}m`:`${mm}m`; }
 
 let _trend=null,_trendRange="24h";
@@ -1855,7 +1824,7 @@ function drawTrend(ev){
     x.strokeStyle=acc; x.lineWidth=2.4; x.lineJoin="round"; x.beginPath(); S.pts.forEach((p,i)=>{ const px=X(p.x),py=Y(p.hi); i?x.lineTo(px,py):x.moveTo(px,py); }); x.stroke();
     x.strokeStyle=soft; x.lineWidth=1.6; x.setLineDash([4,3]); x.beginPath(); S.pts.forEach((p,i)=>{ const px=X(p.x),py=Y(p.lo); i?x.lineTo(px,py):x.moveTo(px,py); }); x.stroke(); x.setLineDash([]);
     x.textAlign="center"; S.pts.forEach(p=>{ tDot(x,X(p.x),Y(p.hi),acc); x.fillStyle=ink; x.font="10px "+monoFont(); x.textBaseline="bottom"; x.fillText(Math.round(p.hi)+"°",X(p.x),Y(p.hi)-6);
-      x.fillStyle=soft; x.textBaseline="top"; x.fillText(new Date(p.x).toLocaleDateString("en-US",{weekday:"short",timeZone:"UTC"}),X(p.x),padT+plotH+6); });
+      x.fillStyle=soft; x.textBaseline="top"; x.fillText(new Date(p.x).toLocaleDateString("en-GB",{weekday:"short",timeZone:"UTC"}),X(p.x),padT+plotH+6); });
   }
   x.textAlign="left"; x.textBaseline="alphabetic";
 }
@@ -1895,7 +1864,7 @@ function showFrame(i){
   if(_overlay) _map.removeLayer(_overlay);
   _overlay=window.L.tileLayer(_frames[_frameIdx].url,{opacity:0.78,maxZoom:12,zIndex:400}).addTo(_map);
   const t=new Date(_frames[_frameIdx].time*1000), lbl=$("#timeLabel");
-  if(lbl) lbl.textContent=t.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"})+(_frameIdx>=_pastCount?" ·fcst":"");
+  if(lbl) lbl.textContent=t.toLocaleTimeString("en-GB", {hour:"2-digit",minute:"2-digit"})+(_frameIdx>=_pastCount?" ·fcst":"");
   const sl=$("#timeline"); if(sl){ sl.max=_frames.length-1; sl.value=_frameIdx; }
 }
 function stopPlay(){ _playing=false; if(_playTimer) clearInterval(_playTimer); _playTimer=null; const b=$("#playBtn"); if(b) b.textContent="▶"; }
@@ -1945,9 +1914,9 @@ async function windLayer(){
 function scheduleWindRefresh(){ if(_curLayer!=="wind"||!_map) return; clearTimeout(_windT); _windT=setTimeout(()=>{ if(_curLayer==="wind") windLayer(); },500); }
 async function openRadar(){
   if(!window.L){ $("#mapNote").textContent="Map library didn't load — check your connection."; return; }
-  if(!_map){ _map=window.L.map("map",{zoomControl:true}).setView([44.45,-88.06],7); setBase(); _map.on("moveend zoomend",scheduleWindRefresh); }
-  const p=_lastPlace||{lat:44.4489,lon:-88.0604};
-  _map.setView([p.lat,p.lon],7);
+  if(!_map){ _map=window.L.map("map",{zoomControl:true}).setView([53.29,-3.06],8); setBase(); _map.on("moveend zoomend",scheduleWindRefresh); }
+  const p=_lastPlace||{lat:53.2911,lon:-3.0647};
+  _map.setView([p.lat,p.lon],8);
   if(!_marker) _marker=window.L.circleMarker([p.lat,p.lon],{radius:6,color:"#fff",weight:2,fillColor:"#1f6f8b",fillOpacity:1});
   _marker.setLatLng([p.lat,p.lon]).addTo(_map);
   setTimeout(()=>_map.invalidateSize(),80);
@@ -1964,7 +1933,7 @@ async function openRadar(){
   rp.querySelectorAll("[data-layer]").forEach(b=>b.addEventListener("click",()=>selectLayer(b.dataset.layer)));
   const pb=$("#playBtn"); if(pb) pb.addEventListener("click",()=>{ _playing?stopPlay():playRadar(); });
   const sl=$("#timeline"); if(sl) sl.addEventListener("input",()=>{ stopPlay(); showFrame(+sl.value); });
-  const rc=$("#recenterBtn"); if(rc) rc.addEventListener("click",()=>{ const p=_lastPlace||{lat:44.45,lon:-88.06}; if(_map) _map.setView([p.lat,p.lon],7); });
+  const rc=$("#recenterBtn"); if(rc) rc.addEventListener("click",()=>{ const p=_lastPlace||{lat:53.2911,lon:-3.0647}; if(_map) _map.setView([p.lat,p.lon],8); });
 })();
 
 /* ================= boot ================= */
@@ -1978,6 +1947,6 @@ async function openRadar(){
   updateProBtn();
   const saved=loadPlace();
   applyTheme(saved||null);
-  go(saved || {name:"De Pere",admin1:"Wisconsin",country:"US",lat:44.4489,lon:-88.0604,label:"De Pere, Wisconsin, US"});
+  go(saved || {name:"Neston",admin1:"Cheshire",country:"GB",lat:53.2911,lon:-3.0647,label:"Neston, Cheshire, GB"});
 })();
 </script>
