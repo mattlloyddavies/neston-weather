@@ -26,6 +26,14 @@ dependencies, no API keys.
 - **Warnings**: the Met Office and MeteoAlarm feeds block browser access, so the app
   links to the Met Office North West warnings page instead of showing alerts in-app.
 
+## Recipe index
+`recipes.json` lists about 1,100 recipes from Meat Church, Heath Riles, BBQ Pit Boys, All Things BBQ,
+HowToBBQRight, Pellets and Pits and Chuds BBQ, each tagged with its main dish. The Cookout tab
+uses it to link today's cooks to real recipes on the creators' own sites. It stores titles, links,
+creator and dish only, no recipe content. Rebuild it with:
+
+    python scripts/build_recipes.py
+
 ## Sources
 - Forecast, humidity, air quality, pressure, UV, sun and tides: [Open-Meteo](https://open-meteo.com)
 - Map weather layers: [MapTiler Weather](https://www.maptiler.com/weather/)

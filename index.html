@@ -209,8 +209,13 @@
   .dish:first-of-type{border-top:0;padding-top:6px}
   .dish b{font-family:var(--disp);font-size:1.02rem}
   .dish p{margin:4px 0 0}
-  .dish .links{display:flex;flex-direction:column;gap:6px;min-width:170px}
-  @media (max-width:560px){.dish{grid-template-columns:minmax(0,1fr)}.dish .links{flex-direction:row;flex-wrap:wrap;min-width:0}}
+  .dish .links{display:flex;flex-direction:column;gap:6px;width:220px}
+  .dish .recipe{display:block;padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);color:var(--ink);text-decoration:none;font-size:.84rem;font-weight:600;line-height:1.25}
+  .dish .recipe small{display:block;font-weight:400;color:var(--ink-soft);font-size:.74rem;margin-top:2px}
+  .dish .recipe:hover{border-color:var(--accent)}
+  .dish .vids{font-size:.78rem;color:var(--ink-soft);margin-top:6px}
+  .dish .vids a{color:var(--ink-soft)}
+  @media (max-width:560px){.dish{grid-template-columns:minmax(0,1fr)}.dish .links{width:auto}}
   .daybtn{cursor:pointer;font:inherit;font-size:.82rem}
   .daybtn.sel{border-color:var(--accent);background:var(--accent);color:#fff}
   .kitlist{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:9px}
@@ -835,7 +840,7 @@ function bbqPlan(c){
     const k=griddleOrder(c).find(k=>!dishes.some(d=>d.key===k));
     if(k) dishes.push({...DISHES[k],key:k,family:true});
   }
-  return {kit,modes,top,second,headline,dishes,vc:!top?"no":top.ok==="go"?"go":"maybe"};
+  return {kit,modes,top,second,headline,dishes,seed:c.seed||0,vc:!top?"no":top.ok==="go"?"go":"maybe"};
 }
 // Longest run of decent open-air hours on dayStr from hourly index `from` (for the Kadai and kettle).
 function openWindow(h,dayStr,from,wind,feels){
@@ -932,6 +937,26 @@ function cookoutCards(b){
   return `${week}<div class="cookout"><div class="stack"><div id="playCard">${playCardHTML(b,null)}</div><div id="kitCard">${kitCardHTML(p,"today")}</div></div><div id="cookCard">${cookCardHTML(p,null)}</div></div>`;
 }
 let _cookout=null, _lastFc=null;
+/* ---- recipe index: recipes.json, built by scripts/build_recipes.py from the creators' own sites ---- */
+let _recipes=null, _recipesBuilt="";
+function loadRecipes(){
+  if(_recipes) return Promise.resolve(_recipes);
+  return getJSON("recipes.json").then(d=>{ _recipesBuilt=d.built||""; return _recipes=d.recipes||[]; }).catch(()=>_recipes=[]);
+}
+// words that suggest a recipe suits that bit of kit
+const KIT_HINT={traeger:/traeger|pellet|smoked|smoker/i, blackstone:/griddle|flat ?top|flatrock|blackstone|smash/i,
+  clementi:/wood ?fired|pizza oven|ooni/i, kadai:/fire|asado|cast iron|dutch oven|plancha|skewer|spit/i, kettle:/kettle|weber|grilled/i};
+function hash(str){ let h=2166136261; for(const ch of str){ h^=ch.charCodeAt(0); h=Math.imul(h,16777619); } return h>>>0; }
+// Up to n recipes for a dish: kit-friendly ones first, different creators where possible, rotating by day.
+function recipesFor(dish,kit,seed,n=3){
+  if(!_recipes) return [];
+  const pool=_recipes.filter(r=>r.d===dish).map(r=>({...r,score:(KIT_HINT[kit]&&KIT_HINT[kit].test(r.t)?1:0),h:hash(seed+r.u)}))
+    .sort((a,b)=>b.score-a.score||a.h-b.h);
+  const out=[], used=new Set();
+  for(const r of pool){ if(out.length<n&&!used.has(r.c)){ out.push(r); used.add(r.c); } }
+  for(const r of pool){ if(out.length<n&&!out.includes(r)) out.push(r); }
+  return out;
+}
 // The play for the selected day: headline, the weather read, the numbers and the open-air window.
 function playCardHTML(x,name){
   return `<div class="card"><h2>${name?esc(name)+"'s play":"Today's play"}</h2>
@@ -955,10 +980,13 @@ function cookCardHTML(p,day){
     p.dishes.map(d=>`<div class="dish"><div>
         <b>${d.e} ${esc(d.name)}</b>
         <div class="on">${d.family?"<b class=\"fam\">Quick family option</b> · ":""}${d.on||KIT[d.kit].on} · ${d.overnight?"overnight, ready tomorrow":cookTime(d)}</div>
-        <p>${esc(d.desc)}</p></div>
-      <div class="links">${d.by.map(k=>`<a class="factor" href="${yt(PITMASTERS[k].h,d.q)}" target="_blank" rel="noopener">▶ ${esc(PITMASTERS[k].name)}</a>`).join("")}</div></div>`).join("");
+        <p>${esc(d.desc)}</p>
+        <p class="vids">▶ Videos: ${d.by.map(k=>`<a href="${yt(PITMASTERS[k].h,d.q)}" target="_blank" rel="noopener">${esc(PITMASTERS[k].name)}</a>`).join(" · ")}</p></div>
+      <div class="links">${(()=>{ const rs=recipesFor(d.key,d.kit,p.seed);
+        return rs.length?rs.map(r=>`<a class="recipe" href="${esc(r.u)}" target="_blank" rel="noopener">${esc(r.t)}<small>${esc(PITMASTERS[r.c]?PITMASTERS[r.c].name:r.c)} ↗</small></a>`).join("")
+          :`<span class="on">No written recipes indexed yet — try the videos.</span>`; })()}</div></div>`).join("");
   return `<div class="card"><h2>What to cook · ${day?esc(day.name):"today"}</h2>${rows}
-    <p class="disclaim">Recipe links search each creator's YouTube channel. More from ${Object.values(PITMASTERS).map(x=>`<a href="https://www.youtube.com/@${x.h}" target="_blank" rel="noopener">${esc(x.name)}</a>`).join(" · ")}.</p></div>`;
+    <p class="disclaim">Recipes open on each creator's own website (index of ${_recipes?_recipes.length.toLocaleString("en-GB"):"their"} recipes${_recipesBuilt?", updated "+esc(_recipesBuilt):""}). Videos search their YouTube channels: ${Object.values(PITMASTERS).map(x=>`<a href="https://www.youtube.com/@${x.h}" target="_blank" rel="noopener">${esc(x.name)}</a>`).join(" · ")}.</p></div>`;
 }
 document.addEventListener("click",e=>{
   const btn=e.target.closest("[data-day]"); if(!btn||!_cookout) return;
@@ -1419,7 +1447,7 @@ async function go(place){
   try{
     const tm = teamsFor(place);
     const schedP = tm.keys.length ? getSchedules(tm.keys) : Promise.resolve([]);
-    const [fc, air, alerts, schedules, tides] = await Promise.all([ getJSON(fUrl), getJSON(aUrl).catch(()=>null), getAlerts(lat,lon), schedP, getTides(lat,lon) ]);
+    const [fc, air, alerts, schedules, tides] = await Promise.all([ getJSON(fUrl), getJSON(aUrl).catch(()=>null), getAlerts(lat,lon), schedP, getTides(lat,lon), loadRecipes() ]);
     fc._tides = tides;
     render(place, fc, air, alerts, {list:schedules, metro:tm.metro});
   }catch(err){ showMsg("The forecast servers ghosted us. "+esc(err.message||"")+" — try again or pick another spot.",false); }
