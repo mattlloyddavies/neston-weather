@@ -200,10 +200,11 @@
   .factors{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 4px}
   .card.wide{grid-column:span 2}
   @media (max-width:560px){.card.wide{grid-column:auto}}
-  .bbq-split{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:6px 22px;margin-top:6px}
+  .bbq-split{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:6px 22px;margin-top:6px}
   .bbq-split h3{font-family:var(--mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin:10px 0 2px;font-weight:600}
   .cooks{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:12px}
   .cooks b{font-family:var(--disp)}
+  .cooks .on{font-size:.74rem;color:var(--ink-soft)}
   .cooks p{margin:2px 0 0}
   .cooks .factors{margin:6px 0 0}
   a.factor{text-decoration:none;color:var(--ink)}
@@ -845,7 +846,7 @@ function kitRow(plan){
 function bbqCard(b){
   const p=b.plan, yt=(h,q)=>"https://www.youtube.com/@"+h+"/search?query="+encodeURIComponent(q);
   const cooks=!p.top?`<p>Every bit of kit is benched. Order a takeaway and plan the next cook.</p>`:
-    `<ul class="cooks">${p.dishes.map(d=>`<li><b>${d.e} ${esc(d.name)}</b> <span class="disclaim">${d.on||KIT[d.kit].on}${d.overnight?" · overnight, ready tomorrow":""}</span>
+    `<ul class="cooks">${p.dishes.map(d=>`<li><b>${d.e} ${esc(d.name)}</b> <span class="on">${d.on||KIT[d.kit].on}${d.overnight?" · overnight, ready tomorrow":""}</span>
       <div class="factors">${d.by.map(k=>`<a class="factor" href="${yt(PITMASTERS[k].h,d.q)}" target="_blank" rel="noopener">▶ ${esc(PITMASTERS[k].name)}</a>`).join("")}</div></li>`).join("")}</ul>`;
   return `<div class="card wide"><h2>BBQ forecast</h2>
     <div class="verdict ${b.vc}">${esc(b.label)}</div>
