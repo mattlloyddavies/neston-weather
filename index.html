@@ -207,6 +207,8 @@
   .dish p{margin:4px 0 0}
   .dish .links{display:flex;flex-direction:column;gap:6px;min-width:170px}
   @media (max-width:560px){.dish{grid-template-columns:minmax(0,1fr)}.dish .links{flex-direction:row;flex-wrap:wrap;min-width:0}}
+  .daybtn{cursor:pointer;font:inherit;font-size:.82rem}
+  .daybtn.sel{border-color:var(--accent);background:var(--accent);color:#fff}
   .kitlist{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:9px}
   .kitlist li{display:flex;gap:10px;align-items:baseline}
   .kitlist .ks{flex:0 0 1.4em;text-align:center}
@@ -760,7 +762,7 @@ const MODES={
 };
 // Score each way of cooking today from the kit's status plus the day, the time and the weather.
 function bbqPlan(c){
-  const kit=kitStatus(c), cold=c.feels<=8, hot=c.feels>=25, niceOpen=c.openHours>=4&&c.wind<12&&!c.wetNow&&c.feels>=10&&c.feels<=24;
+  const kit=kitStatus(c), cold=c.feels<=8, hot=c.feels>=25, niceOpen=c.openHours>=4&&c.wind<12&&!c.wetNow&&c.feels>=6&&c.feels<=24;
   const weekend=c.dow===0||c.dow===6, friday=c.dow===5;
   const sc={lowslow:3,overnight:2,pizza:2,griddle:2,fire:2,kettle:1};
   if(c.hour>=16) delete sc.lowslow; else delete sc.overnight; // too late to start a long cook today
@@ -770,8 +772,8 @@ function bbqPlan(c){
   if(cold){ sc.fire+=2; sc.pizza+=1; sc.griddle-=1; if(sc.lowslow!=null) sc.lowslow+=1; }
   if(hot){ sc.griddle+=2; sc.fire+=1; sc.kettle+=1; if(sc.lowslow!=null) sc.lowslow-=2; }
   if(c.wind>=18&&sc.lowslow!=null) sc.lowslow+=1;
-  if(niceOpen){ sc.kettle+=1; if(c.hour>=12) sc.fire+=2; } // fire bowl is a lunch-and-evening thing
-  if(c.hour>=17) sc.fire+=1;
+  if(niceOpen){ sc.kettle+=1; if(c.hour>=12||c.wholeDay) sc.fire+=2; } // fire bowl is a lunch-and-evening thing
+  if(c.hour>=17||c.wholeDay) sc.fire+=1;
   const modes=Object.keys(sc).map(k=>{ const ok=kit[MODES[k].kit].ok; return {key:k,...MODES[k],ok,score:sc[k]-(ok==="maybe"?1:0)}; })
     .filter(m=>m.ok!=="no").sort((a,b)=>b.score-a.score);
   const top=modes[0]||null;
@@ -806,13 +808,8 @@ function bbqPlan(c){
   }
   return {kit,modes,top,second,headline,dishes,vc:!top?"no":top.ok==="go"?"go":"maybe"};
 }
-function bbqReport(fc,cur){
-  const feels=cur.apparent_temperature, wind=cur.wind_speed_10m, gust=cur.wind_gusts_10m, code=cur.weather_code;
-  const storm=[95,96,99].includes(code);
-  const wetNow=[51,53,55,61,63,65,80,81,82,67,57].includes(code);
-  // best open-air window left today (for the Kadai and the kettle — the covered kit doesn't need one)
-  const h=fc.hourly, off=(fc.utc_offset_seconds||0)*1000, nowU=Date.now()+off, todayStr=new Date(nowU).toISOString().slice(0,10);
-  let i=h.time.findIndex(t=>Date.parse(t+"Z")>=nowU-3600000); if(i<0) i=0;
+// Longest run of decent open-air hours on dayStr from hourly index `from` (for the Kadai and kettle).
+function openWindow(h,dayStr,from,wind,feels){
   const sc=k=>{ let s=2;
     const pp=h.precipitation_probability?h.precipitation_probability[k]:0, c=h.weather_code[k],
       w=h.wind_speed_10m?h.wind_speed_10m[k]:wind, f=h.apparent_temperature?h.apparent_temperature[k]:feels, day=h.is_day?h.is_day[k]:1;
@@ -821,10 +818,33 @@ function bbqReport(fc,cur){
     if(f<0) s-=2; else if(f<7) s-=1; else if(f>=11&&f<=29) s+=1; else if(f>33) s-=1;
     if(day) s+=1; return s; };
   let bestA=-1,bestB=-1,curA=-1;
-  for(let k=i;k<h.time.length && h.time[k].slice(0,10)===todayStr;k++){
+  for(let k=from;k<h.time.length && h.time[k].slice(0,10)===dayStr;k++){
     if(sc(k)>=3){ if(curA<0) curA=k; if(bestA<0 || (k-curA)>(bestB-bestA)){ bestA=curA; bestB=k; } }
     else curA=-1;
   }
+  return {bestA,bestB,hours:bestA>=0?bestB-bestA+1:0,
+    text:bestA>=0?hhmm(Date.parse(h.time[bestA]+"Z"))+"–"+hhmm(Date.parse(h.time[bestB]+"Z")+3600000):null};
+}
+// A cook plan for a future day (index into fc.daily), planned as if from the morning.
+function dayPlan(fc,i){
+  const d=fc.daily, h=fc.hourly, dayStr=d.time[i], idx=[];
+  h.time.forEach((t,k)=>{ if(t.slice(0,10)===dayStr){ const hr=+t.slice(11,13); if(hr>=12&&hr<=19) idx.push(k); } });
+  const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
+  const feels=avg(idx.map(k=>h.apparent_temperature[k])), wind=avg(idx.map(k=>h.wind_speed_10m[k]));
+  const gust=d.wind_gusts_10m_max?d.wind_gusts_10m_max[i]:wind*1.5, pop=d.precipitation_probability_max?d.precipitation_probability_max[i]:0;
+  const from=h.time.findIndex(t=>t===dayStr+"T09:00"), w=openWindow(h,dayStr,from<0?0:from,wind,feels);
+  const plan=bbqPlan({storm:[95,96,99].includes(d.weather_code[i]),wetNow:pop>=60,wind,gust,feels,
+    openHours:w.hours,hour:9,wholeDay:true,dow:new Date(dayStr+"T12:00:00Z").getUTCDay()});
+  return {plan,window:w.text,feels:Math.round(feels),wind:Math.round(wind),pop:Math.round(pop),hi:Math.round(d.temperature_2m_max[i])};
+}
+function bbqReport(fc,cur){
+  const feels=cur.apparent_temperature, wind=cur.wind_speed_10m, gust=cur.wind_gusts_10m, code=cur.weather_code;
+  const storm=[95,96,99].includes(code);
+  const wetNow=[51,53,55,61,63,65,80,81,82,67,57].includes(code);
+  // best open-air window left today (for the Kadai and the kettle — the covered kit doesn't need one)
+  const h=fc.hourly, off=(fc.utc_offset_seconds||0)*1000, nowU=Date.now()+off, todayStr=new Date(nowU).toISOString().slice(0,10);
+  let i=h.time.findIndex(t=>Date.parse(t+"Z")>=nowU-3600000); if(i<0) i=0;
+  const ow=openWindow(h,todayStr,i,wind,feels), bestA=ow.bestA, bestB=ow.bestB;
   const window=bestA>=0?hhmm(Date.parse(h.time[bestA]+"Z"))+"–"+hhmm(Date.parse(h.time[bestB]+"Z")+3600000):null;
   const local=new Date(nowU);
   const plan=bbqPlan({storm,wetNow,wind,gust,feels,openHours:bestA>=0?bestB-bestA+1:0,hour:local.getUTCHours(),dow:local.getUTCDay()});
@@ -873,20 +893,40 @@ function cookoutCards(b){
     <ul class="kitlist">${Object.keys(KIT).map(k=>{ const st=p.kit[k];
       return `<li><span class="ks">${st.ok==="go"?"✅":st.ok==="maybe"?"⚠️":"❌"}</span><div><b>${KIT[k].e} ${KIT[k].name}</b><small>${esc(st.note)}</small></div></li>`; }).join("")}</ul>
     <p class="disclaim">Traeger, Blackstone and Clementi live under the roof, so rain doesn't bench them, but storms and wind through the open sides do. The Kadai and kettle need a dry, calm window.</p></div>`;
-  const rows=!p.top?`<p>Every bit of kit is benched. Order a takeaway and plan the next cook.</p>`:
+  const week=`<div class="card"><h2>The week ahead</h2>
+    <div class="factors" id="weekDays">${b.week.days.map(x=>`<button type="button" class="factor daybtn${x.i===0?" sel":""}" data-day="${x.i}" title="Plan ${x.day}: ${x.hi}°, ${x.pop}% rain">${x.dow} ${x.mark} ${x.hi}°</button>`).join("")}</div>
+    <p style="margin-top:8px">${b.week.pick}</p>
+    <p class="disclaim">Tap a day to plan its cook. 🔥 big-cook day · 🍔 good · 🧥 coat-on · 🌧️ wet.</p></div>`;
+  _cookout={fc:_lastFc,today:b};
+  return `<div class="cookout"><div class="stack">${play}${kit}</div><div id="cookCard">${cookCardHTML(p,null)}</div></div>${week}`;
+}
+let _cookout=null, _lastFc=null;
+// What to cook for a plan; `day` (from dayPlan, plus a name) adds that day's play, weather and kit.
+function cookCardHTML(p,day){
+  const yt=(h,q)=>"https://www.youtube.com/@"+h+"/search?query="+encodeURIComponent(q);
+  const head=!day?"":`<div class="verdict ${p.vc}" style="font-size:1.15rem">${esc(p.headline)}</div>
+    <p class="on">${day.hi}° high · feels ~${day.feels}° in the afternoon · ${day.pop}% rain · wind ${day.wind} mph${day.window?` · open-air ${day.window}`:" · no open-air window"}</p>
+    <div class="factors">${Object.keys(KIT).map(k=>{ const st=p.kit[k];
+      return `<span class="factor" title="${esc(st.note)}">${KIT[k].e} ${KIT[k].short} ${st.ok==="go"?"✅":st.ok==="maybe"?"⚠️":"❌"}</span>`; }).join("")}</div>`;
+  const rows=!p.top?`<p>Every bit of kit is benched${day?" that day":""}. Order a takeaway and plan the next cook.</p>`:
     p.dishes.map(d=>`<div class="dish"><div>
         <b>${d.e} ${esc(d.name)}</b>
         <div class="on">${d.on||KIT[d.kit].on} · ${d.overnight?"overnight, ready tomorrow":cookTime(d.hrs)}</div>
         <p>${esc(d.desc)}</p></div>
       <div class="links">${d.by.map(k=>`<a class="factor" href="${yt(PITMASTERS[k].h,d.q)}" target="_blank" rel="noopener">▶ ${esc(PITMASTERS[k].name)}</a>`).join("")}</div></div>`).join("");
-  const cook=`<div class="card"><h2>What to cook</h2>${rows}
+  return `<div class="card"><h2>What to cook${day?" · "+esc(day.name):""}</h2>${head}${rows}
+    ${day?`<p style="margin-top:10px"><button type="button" class="linkbtn" data-day="0">← Back to today</button></p>`:""}
     <p class="disclaim">Recipe links search each creator's YouTube channel. More from ${Object.values(PITMASTERS).map(x=>`<a href="https://www.youtube.com/@${x.h}" target="_blank" rel="noopener">${esc(x.name)}</a>`).join(" · ")}.</p></div>`;
-  const week=`<div class="card"><h2>The week ahead</h2>
-    <div class="factors">${b.week.days.map(x=>`<span class="factor" title="${x.hi}°, ${x.pop}% rain">${x.dow} ${x.mark} ${x.hi}°</span>`).join("")}</div>
-    <p style="margin-top:8px">${b.week.pick}</p>
-    <p class="disclaim">🔥 big-cook day · 🍔 good · 🧥 coat-on · 🌧️ wet. Rated on the day's high, rain chance and wind.</p></div>`;
-  return `<div class="cookout"><div class="stack">${play}${kit}</div>${cook}</div>${week}`;
 }
+document.addEventListener("click",e=>{
+  const btn=e.target.closest("[data-day]"); if(!btn||!_cookout) return;
+  const i=+btn.dataset.day, box=$("#cookCard"); if(!box) return;
+  document.querySelectorAll("#weekDays .daybtn").forEach(x=>x.classList.toggle("sel",+x.dataset.day===i));
+  if(i===0){ box.innerHTML=cookCardHTML(_cookout.today.plan,null); return; }
+  const dp=dayPlan(_cookout.fc,i), info=_cookout.today.week.days[i];
+  box.innerHTML=cookCardHTML(dp.plan,{...dp,name:info?info.day.replace(/^./,c=>c.toUpperCase()):"That day"});
+  if(window.innerWidth<=760) box.scrollIntoView({behavior:"smooth",block:"start"});
+});
 
 // Rate each of the next 7 days for a BBQ and pick the best one.
 function bbqWeek(fc){
@@ -1396,6 +1436,7 @@ function render(place, fc, air, alerts, sports){
   const vq=verdict(feels,pop0,wind,gust,aqi,code,tier);
   const wear=dressFor(feels,pop0,wind,uv0,code);
   const pro=premiumUnlocked();
+  _lastFc=fc;
   const bbq=pro?bbqReport(fc,cur):null;
   const cat=aqiCat(aqi);
   const aqiPct = aqi==null?0:Math.max(2,Math.min(100,(aqi/120)*100));
