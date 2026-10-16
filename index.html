@@ -219,6 +219,8 @@
   .kitlist small{display:block;color:var(--ink-soft);font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .kitlist li>div{min-width:0;flex:1}
   #kitCard>.card{height:500px;overflow-y:auto}
+  #playCard>.card{height:330px;overflow-y:auto}
+  [data-panel=cook]>.card{margin-bottom:14px}
   .cooks{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:12px}
   .cooks b{font-family:var(--disp)}
   .cooks .on,.dish .on{font-size:.78rem;color:var(--ink-soft);margin-top:2px}
@@ -852,6 +854,18 @@ function openWindow(h,dayStr,from,wind,feels){
   return {bestA,bestB,hours:bestA>=0?bestB-bestA+1:0,
     text:bestA>=0?hhmm(Date.parse(h.time[bestA]+"Z"))+"–"+hhmm(Date.parse(h.time[bestB]+"Z")+3600000):null};
 }
+// One-line read on the cooking weather; `ahead` words it for a planned day, not right now.
+function playWhy(c,plan,ahead){
+  c={...c,feels:Math.round(c.feels)}; // match the rounded figure shown on the card
+  if(c.storm) return ahead?"Thunder forecast. Even the most stubborn dad respects lightning, so plan an indoor night.":"Thunder and lightning. Even the most stubborn dad respects that. Sausages under the grill indoors tonight.";
+  if(c.wetNow) return ahead?"Looks wet, but that's what the roof's for. The covered kit will be fine; the Kadai and kettle probably won't.":"Raining, but that's what the roof's for. The covered kit's good to go; the Kadai and kettle sit this one out.";
+  if(c.wind>=25) return "Blowing a hoolie off the Dee, and those open sides let it in. Lid-down cooking only.";
+  if(c.feels<=0) return "Below freezing. The Traeger will eat pellets like it's paid by the bag. Bundle up, legend.";
+  if(c.feels<=8) return plan.kit.kadai.ok==="go"?"Chilly but dry. Fleece on, and a fire bowl's never more welcome.":"Chilly out. Fleece on, lid shut, and cook under the roof.";
+  if(c.feels<=13) return "Dry and mild enough, which round here counts as a bank-holiday heatwave.";
+  if(c.feels>=30) return "Too hot to stand over coals at midday. In Britain, somehow. Cook late, cold drink mandatory.";
+  return plan.kit.kadai.ok==="no"?"Mild enough, but the open-air kit's benched. The kitchen roof earns its keep.":"Proper BBQ weather. Dry, warm, and begging for something over the fire.";
+}
 // A cook plan for a future day (index into fc.daily), planned as if from the morning.
 function dayPlan(fc,i){
   const d=fc.daily, h=fc.hourly, dayStr=d.time[i], idx=[];
@@ -861,9 +875,11 @@ function dayPlan(fc,i){
   const gust=d.wind_gusts_10m_max?d.wind_gusts_10m_max[i]:wind*1.5, pop=d.precipitation_probability_max?d.precipitation_probability_max[i]:0;
   const dow=new Date(dayStr+"T12:00:00Z").getUTCDay();
   const from=h.time.findIndex(t=>t===dayStr+"T09:00"), w=openWindow(h,dayStr,from<0?0:from,wind,feels);
-  const plan=bbqPlan({storm:[95,96,99].includes(d.weather_code[i]),wetNow:pop>=60,wind,gust,feels,
+  const storm=[95,96,99].includes(d.weather_code[i]), wetNow=pop>=60;
+  const plan=bbqPlan({storm,wetNow,wind,gust,feels,
     openHours:w.hours,hour:dow===0||dow===6?9:17,wholeDay:true,dow,seed:Math.floor(Date.parse(dayStr+"T00:00:00Z")/86400000)});
-  return {plan,window:w.text,feels:Math.round(feels),wind:Math.round(wind),pop:Math.round(pop),hi:Math.round(d.temperature_2m_max[i])};
+  return {plan,label:plan.headline,vc:plan.vc,why:playWhy({storm,wetNow,wind,feels},plan,true),
+    window:w.text,feels:Math.round(feels),wind:Math.round(wind),pop:Math.round(pop),hi:Math.round(d.temperature_2m_max[i])};
 }
 function bbqReport(fc,cur){
   const feels=cur.apparent_temperature, wind=cur.wind_speed_10m, gust=cur.wind_gusts_10m, code=cur.weather_code;
@@ -876,16 +892,11 @@ function bbqReport(fc,cur){
   const window=bestA>=0?hhmm(Date.parse(h.time[bestA]+"Z"))+"–"+hhmm(Date.parse(h.time[bestB]+"Z")+3600000):null;
   const local=new Date(nowU);
   const plan=bbqPlan({storm,wetNow,wind,gust,feels,openHours:bestA>=0?bestB-bestA+1:0,hour:local.getUTCHours(),dow:local.getUTCDay(),seed:Math.floor(nowU/86400000)});
-  let why;
-  if(storm) why="Thunder and lightning. Even the most stubborn dad respects that. Sausages under the grill indoors tonight.";
-  else if(wetNow) why="Raining, but that's what the roof's for. The covered kit's good to go; the Kadai and kettle sit this one out.";
-  else if(wind>=25) why="Blowing a hoolie off the Dee, and those open sides let it in. Lid-down cooking only.";
-  else if(feels<=0) why="Below freezing. The Traeger will eat pellets like it's paid by the bag. Bundle up, legend.";
-  else if(feels<=8) why=plan.kit.kadai.ok==="go"?"Chilly but dry. Fleece on, and a fire bowl's never more welcome.":"Chilly out. Fleece on, lid shut, and cook under the roof.";
-  else if(feels<=13) why="Dry and double figures, which is basically a bank-holiday heatwave.";
-  else if(feels>=30) why="Too hot to stand over coals at midday. In Britain, somehow. Cook late, cold drink mandatory.";
-  else why=plan.kit.kadai.ok==="no"?"Mild enough, but the open-air kit's benched. The kitchen roof earns its keep today.":"Proper BBQ weather. Dry, warm, and begging for something over the fire.";
-  return {label:plan.headline,vc:plan.vc,why,window,plan,week:bbqWeek(fc)};
+  const why=playWhy({storm,wetNow,wind,feels},plan,false);
+  const d=fc.daily;
+  return {label:plan.headline,vc:plan.vc,why,window,plan,week:bbqWeek(fc),
+    hi:Math.round(d.temperature_2m_max[0]),feels:Math.round(feels),wind:Math.round(wind),
+    pop:Math.round(d.precipitation_probability_max?d.precipitation_probability_max[0]:0)};
 }
 
 /* ================= What to cook — dishes for exactly the cooks the BBQ forecast picked =================
@@ -913,18 +924,23 @@ function bbqCard(b){
 const cookTime=d=>d.quick?"15–30 minutes":d.hrs>=12?"12+ hours":d.hrs>=2?"about "+d.hrs+" hours":"about an hour";
 function cookoutCards(b){
   const p=b.plan, yt=(h,q)=>"https://www.youtube.com/@"+h+"/search?query="+encodeURIComponent(q);
-  const play=`<div class="card"><h2>Today's play</h2>
-    <div class="verdict ${b.vc}">${esc(b.label)}</div>
-    <p>${b.why}</p>
-    <p style="margin-top:8px">${b.window?`<b>Open-air window (Kadai, kettle):</b> ${b.window}`:`No dry open-air window left today, so it's covered kit only.`}</p></div>`;
   const week=`<div class="card"><h2>The week ahead</h2>
     <div class="factors" id="weekDays">${b.week.days.map(x=>`<button type="button" class="factor daybtn${x.i===0?" sel":""}" data-day="${x.i}" title="Plan ${x.day}: ${x.hi}°, ${x.pop}% rain">${x.dow} ${x.mark} ${x.hi}°</button>`).join("")}</div>
     <p style="margin-top:8px">${b.week.pick}</p>
     <p class="disclaim">Tap a day to plan its cook. 🔥 big-cook day · 🍔 good · 🧥 coat-on · 🌧️ wet.</p></div>`;
   _cookout={fc:_lastFc,today:b};
-  return `<div class="cookout"><div class="stack">${play}<div id="kitCard">${kitCardHTML(p,"today")}</div></div><div id="cookCard">${cookCardHTML(p,null)}</div></div>${week}`;
+  return `${week}<div class="cookout"><div class="stack"><div id="playCard">${playCardHTML(b,null)}</div><div id="kitCard">${kitCardHTML(p,"today")}</div></div><div id="cookCard">${cookCardHTML(p,null)}</div></div>`;
 }
 let _cookout=null, _lastFc=null;
+// The play for the selected day: headline, the weather read, the numbers and the open-air window.
+function playCardHTML(x,name){
+  return `<div class="card"><h2>${name?esc(name)+"'s play":"Today's play"}</h2>
+    <div class="verdict ${x.vc}">${esc(x.label)}</div>
+    <p>${x.why}</p>
+    <p class="on">${x.hi}° high · feels ~${x.feels}°${name?" in the afternoon":" now"} · ${x.pop}% rain · wind ${x.wind} mph</p>
+    <p style="margin-top:6px">${x.window?`<b>Open-air window:</b> ${x.window}`:`No dry open-air window${name?"":" left today"}, so it's covered kit only.`}</p>
+    ${name?`<p style="margin-top:6px"><button type="button" class="linkbtn" data-day="0">← Back to today</button></p>`:""}</div>`;
+}
 // Available kit for the selected day (notes kept to one line so the card height never changes).
 function kitCardHTML(p,dayName){
   return `<div class="card"><h2>Available kit · ${esc(dayName)}</h2>
@@ -932,30 +948,28 @@ function kitCardHTML(p,dayName){
       return `<li><span class="ks">${st.ok==="go"?"✅":st.ok==="maybe"?"⚠️":"❌"}</span><div><b>${KIT[k].e} ${KIT[k].name}</b><small title="${esc(st.note)}">${esc(st.note)}</small></div></li>`; }).join("")}</ul>
     <p class="disclaim">Traeger, Blackstone and Clementi live under the roof, so rain doesn't bench them, but storms and wind through the open sides do. The Kadai and kettle need a dry, calm window.</p></div>`;
 }
-// What to cook for a plan; `day` (from dayPlan, plus a name) adds that day's play and weather.
+// What to cook for a plan; `day` (from dayPlan, plus a name) labels it with that day.
 function cookCardHTML(p,day){
   const yt=(h,q)=>"https://www.youtube.com/@"+h+"/search?query="+encodeURIComponent(q);
-  const head=!day?"":`<div class="verdict ${p.vc}" style="font-size:1.15rem">${esc(p.headline)}</div>
-    <p class="on">${day.hi}° high · feels ~${day.feels}° in the afternoon · ${day.pop}% rain · wind ${day.wind} mph${day.window?` · open-air ${day.window}`:" · no open-air window"}</p>`;
   const rows=!p.top?`<p>Every bit of kit is benched${day?" that day":""}. Order a takeaway and plan the next cook.</p>`:
     p.dishes.map(d=>`<div class="dish"><div>
         <b>${d.e} ${esc(d.name)}</b>
         <div class="on">${d.family?"<b class=\"fam\">Quick family option</b> · ":""}${d.on||KIT[d.kit].on} · ${d.overnight?"overnight, ready tomorrow":cookTime(d)}</div>
         <p>${esc(d.desc)}</p></div>
       <div class="links">${d.by.map(k=>`<a class="factor" href="${yt(PITMASTERS[k].h,d.q)}" target="_blank" rel="noopener">▶ ${esc(PITMASTERS[k].name)}</a>`).join("")}</div></div>`).join("");
-  return `<div class="card"><h2>What to cook${day?" · "+esc(day.name):""}</h2>${head}${rows}
-    ${day?`<p style="margin-top:10px"><button type="button" class="linkbtn" data-day="0">← Back to today</button></p>`:""}
+  return `<div class="card"><h2>What to cook · ${day?esc(day.name):"today"}</h2>${rows}
     <p class="disclaim">Recipe links search each creator's YouTube channel. More from ${Object.values(PITMASTERS).map(x=>`<a href="https://www.youtube.com/@${x.h}" target="_blank" rel="noopener">${esc(x.name)}</a>`).join(" · ")}.</p></div>`;
 }
 document.addEventListener("click",e=>{
   const btn=e.target.closest("[data-day]"); if(!btn||!_cookout) return;
-  const i=+btn.dataset.day, box=$("#cookCard"), kitBox=$("#kitCard"); if(!box) return;
+  const i=+btn.dataset.day, box=$("#cookCard"), kitBox=$("#kitCard"), playBox=$("#playCard"); if(!box) return;
   document.querySelectorAll("#weekDays .daybtn").forEach(x=>x.classList.toggle("sel",+x.dataset.day===i));
-  if(i===0){ box.innerHTML=cookCardHTML(_cookout.today.plan,null); if(kitBox) kitBox.innerHTML=kitCardHTML(_cookout.today.plan,"today"); return; }
-  const dp=dayPlan(_cookout.fc,i), info=_cookout.today.week.days[i], name=info?info.day.replace(/^./,c=>c.toUpperCase()):"That day";
+  const t=_cookout.today;
+  if(i===0){ box.innerHTML=cookCardHTML(t.plan,null); kitBox.innerHTML=kitCardHTML(t.plan,"today"); playBox.innerHTML=playCardHTML(t,null); return; }
+  const dp=dayPlan(_cookout.fc,i), info=t.week.days[i], name=info?info.day.replace(/^./,c=>c.toUpperCase()):"That day";
   box.innerHTML=cookCardHTML(dp.plan,{...dp,name});
-  if(kitBox) kitBox.innerHTML=kitCardHTML(dp.plan,name);
-  if(window.innerWidth<=760) box.scrollIntoView({behavior:"smooth",block:"start"});
+  kitBox.innerHTML=kitCardHTML(dp.plan,name);
+  playBox.innerHTML=playCardHTML(dp,name);
 });
 
 // Rate each of the next 7 days for a BBQ and pick the best one.
