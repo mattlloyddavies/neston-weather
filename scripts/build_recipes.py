@@ -4,12 +4,15 @@
 Reads each site's public sitemap (or recipe listing page), keeps only recipe
 pages, turns the page address into a readable title and tags each recipe with
 the one dish it's mainly about, so the Cookout tab can link chilli weather to
-real chilli recipes. Only titles, links, creator and tags are stored — never
-recipe content.
+real chilli recipes. It also notes the YouTube video each recipe page embeds,
+so the app can play it. Only titles, links, creator, dish and video ID are
+stored — never recipe content.
 
 Run from the repo root:  python scripts/build_recipes.py
 """
 import gzip, json, re, sys, time, urllib.request
+from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 
 UA = {"User-Agent": "NestonWeatherDesk-recipe-index/1.0 (+https://mattlloyddavies.github.io/neston-weather/)"}
 
@@ -124,6 +127,63 @@ def urls_for(src, pattern):
     return sorted({u for u in urls if re.search(pattern, u)})
 
 
+YT_ID = re.compile(r"(?:youtube(?:-nocookie)?\.com/(?:embed/|watch\?v=|shorts/)|youtu\.be/)([\w-]{11})")
+
+
+def video_ok(vid):
+    """True if the video still exists and can be embedded (YouTube's public oEmbed lookup)."""
+    try:
+        urllib.request.urlopen(urllib.request.Request(
+            "https://www.youtube.com/oembed?format=json&url=https://www.youtube.com/watch?v=" + vid, headers=UA), timeout=15)
+        return True
+    except Exception:  # noqa: BLE001 — 401/404 = private, deleted or not embeddable
+        return False
+
+
+def video_ids(url):
+    """Playable YouTube video IDs embedded on a recipe page, in page order (playlists skipped)."""
+    seen = []
+    for vid in YT_ID.findall(fetch(url)):
+        if vid != "videoseries" and vid not in seen:
+            seen.append(vid)
+    return [v for v in seen[:3] if video_ok(v)]
+
+
+def add_videos(recipes):
+    """Find each recipe's own YouTube video. Pages seen before keep their saved answer ("v" may be
+    "" for none), so a refresh only visits new recipes. One worker per site, one page at a time."""
+    try:
+        with open("recipes.json", encoding="utf-8") as f:
+            cached = {r["u"]: r["v"] for r in json.load(f)["recipes"] if "v" in r}
+    except (OSError, ValueError, KeyError):
+        cached = {}
+    todo = {}
+    for r in recipes:
+        if r["u"] in cached:
+            r["v"] = cached[r["u"]]
+        else:
+            todo.setdefault(r["c"], []).append(r)
+
+    def crawl(rs):
+        for r in rs:
+            r["_ids"] = video_ids(r["u"])
+            time.sleep(0.5)  # be polite
+
+    with ThreadPoolExecutor(max_workers=len(todo) or 1) as pool:
+        list(pool.map(crawl, todo.values()))
+
+    # A video that turns up on many of one creator's pages is a site-wide promo, not the recipe's own.
+    uses = Counter()
+    for r in recipes:
+        for vid in r.get("_ids", [r.get("v")] if r.get("v") else []):
+            uses[(r["c"], vid)] += 1
+    for r in recipes:
+        if "_ids" in r:
+            r["v"] = next((v for v in r.pop("_ids") if uses[(r["c"], v)] < 4), "")
+    fetched = sum(len(rs) for rs in todo.values())
+    print(f"videos: {sum(bool(r.get('v')) for r in recipes)}/{len(recipes)} recipes ({fetched} pages visited)")
+
+
 def main():
     recipes = []
     for creator, (src, pattern) in SOURCES.items():
@@ -136,6 +196,7 @@ def main():
                 recipes.append({"t": title, "u": url, "c": creator, "d": dish})
                 kept += 1
         print(f"{creator:11s} {len(found):4d} pages, {kept:4d} tagged")
+    add_videos(recipes)
     recipes.sort(key=lambda r: (r["d"], r["c"], r["t"]))
     with open("recipes.json", "w", encoding="utf-8") as f:
         json.dump({"built": time.strftime("%Y-%m-%d"), "recipes": recipes}, f, ensure_ascii=False, separators=(",", ":"))

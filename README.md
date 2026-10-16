@@ -30,7 +30,9 @@ dependencies, no API keys.
 `recipes.json` lists about 1,100 recipes from Meat Church, Heath Riles, BBQ Pit Boys, All Things BBQ,
 HowToBBQRight, Pellets and Pits and Chuds BBQ, each tagged with its main dish. The Cookout tab
 uses it to link today's cooks to real recipes on the creators' own sites. It stores titles, links,
-creator and dish only, no recipe content. Rebuild it with:
+creator, dish and the ID of the YouTube video the recipe page embeds (checked to
+still be playable) — no recipe content. Tapping a recipe opens an in-app page with the video
+and a link to the full recipe on the creator's site. Rebuild it with:
 
     python scripts/build_recipes.py
 

@@ -279,6 +279,15 @@
   .modal button.big{width:100%;justify-content:center;font-size:1rem;padding:12px;margin-bottom:8px}
   .modal button.ghost{width:100%;justify-content:center;background:none;border:0;color:var(--ink-soft)}
   .modal .fineprint{font-size:.72rem;color:var(--ink-soft);margin:10px 0 0;text-align:center}
+  .modal .recipe-sheet{max-width:760px;max-height:calc(100vh - 32px);overflow-y:auto}
+  .recipe-sheet .rmeta{color:var(--ink-soft);font-size:.86rem;margin:4px 0 12px}
+  .recipe-sheet .fit{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:.9rem;margin:0 0 14px}
+  .recipe-sheet .video{position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000;margin:0 0 12px}
+  .recipe-sheet .video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .recipe-sheet .novideo{background:var(--panel-2);border:1px dashed var(--line);border-radius:12px;padding:18px;text-align:center;color:var(--ink-soft);margin:0 0 12px}
+  .recipe-sheet .go{display:block;text-align:center;background:var(--accent);color:#fff;border-radius:12px;padding:12px;font-weight:700;text-decoration:none;margin:4px 0 10px}
+  .recipe-sheet .more{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  .recipe-sheet .more a{text-decoration:none}
   .modal .pro-on-note{display:none;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:12px;
     font-size:.9rem;margin-bottom:12px}
   .modal.is-pro .pro-on-note{display:block}
@@ -410,6 +419,10 @@
     <button class="ghost" data-pro-close>Maybe later</button>
     <p class="fineprint">Unlocks in this browser only — no payment is taken.</p>
   </div>
+</div>
+
+<div id="recipeView" class="modal" hidden>
+  <div class="sheet recipe-sheet" role="dialog" aria-modal="true" aria-labelledby="recipeTitle"></div>
 </div>
 
 <main class="wrap">
@@ -938,15 +951,48 @@ function cookoutCards(b){
 }
 let _cookout=null, _lastFc=null;
 /* ---- recipe index: recipes.json, built by scripts/build_recipes.py from the creators' own sites ---- */
-let _recipes=null, _recipesBuilt="";
+let _recipes=null, _recipesBuilt="", _cookCtx=null;
 function loadRecipes(){
   if(_recipes) return Promise.resolve(_recipes);
-  return getJSON("recipes.json").then(d=>{ _recipesBuilt=d.built||""; return _recipes=d.recipes||[]; }).catch(()=>_recipes=[]);
+  return getJSON("recipes.json").then(d=>{ _recipesBuilt=d.built||""; _recipes=d.recipes||[]; syncRecipeView(); return _recipes; }).catch(()=>_recipes=[]);
 }
 // words that suggest a recipe suits that bit of kit
 const KIT_HINT={traeger:/traeger|pellet|smoked|smoker/i, blackstone:/griddle|flat ?top|flatrock|blackstone|smash/i,
   clementi:/wood ?fired|pizza oven|ooni/i, kadai:/fire|asado|cast iron|dutch oven|plancha|skewer|spit/i, kettle:/kettle|weber|grilled/i};
 function hash(str){ let h=2166136261; for(const ch of str){ h^=ch.charCodeAt(0); h=Math.imul(h,16777619); } return h>>>0; }
+const recipeId=r=>hash(r.u).toString(36);
+const creatorName=c=>PITMASTERS[c]?PITMASTERS[c].name:c;
+/* ---- in-app recipe page: #recipe-<id>, so Back closes it and the link can be shared ---- */
+function recipePageHTML(r){
+  const d=DISHES[r.d]||{}, ctx=_cookCtx, who=creatorName(r.c), ch=PITMASTERS[r.c];
+  const fit=ctx&&ctx.plan&&ctx.plan.dishes.some(x=>x.key===r.d)
+    ?`<div class="fit">Fits <b>${esc(ctx.name==="Today"?"today's":ctx.name+"'s")} play</b>: ${esc(ctx.plan.headline)}${ctx.x?` · ${ctx.x.hi}° high, feels ~${ctx.x.feels}°, ${ctx.x.pop}% rain`:""}.</div>`:"";
+  const video=r.v
+    ?`<div class="video"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(r.v)}?rel=0" title="${esc(r.t)} — ${esc(who)}" loading="lazy"
+        allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
+      <p class="on"><a href="https://www.youtube.com/watch?v=${encodeURIComponent(r.v)}" target="_blank" rel="noopener">Watch on YouTube ↗</a></p>`
+    :`<div class="novideo">No video on this recipe's page.${ch?` <a href="https://www.youtube.com/@${ch.h}/search?query=${encodeURIComponent(d.q||r.t)}" target="_blank" rel="noopener">Search ${esc(who)}'s videos ↗</a>`:""}</div>`;
+  const more=recipesFor(r.d,d.kit,hash(r.u),5).filter(x=>x.u!==r.u).slice(0,4);
+  return `<button class="x" data-recipe-close aria-label="Close">×</button>
+    <h2 id="recipeTitle">${esc(r.t)}</h2>
+    <p class="rmeta">${esc(who)}${d.name?` · ${d.e} ${esc(d.name)} ${d.on||(KIT[d.kit]?KIT[d.kit].on:"")} · ${d.overnight?"overnight":cookTime(d)}`:""}</p>
+    ${fit}${video}
+    <a class="go" href="${esc(r.u)}" target="_blank" rel="noopener">Full recipe on ${esc(who)}'s site ↗</a>
+    ${d.desc?`<p class="on">${esc(d.desc)}</p>`:""}
+    ${more.length?`<h3 class="on" style="margin-top:14px">More ${esc((d.name||"").toLowerCase())} recipes</h3>
+      <div class="more">${more.map(x=>`<a class="factor" href="#recipe-${recipeId(x)}">${x.v?"▶ ":""}${esc(x.t)} · ${esc(creatorName(x.c))}</a>`).join("")}</div>`:""}
+    <p class="fineprint">Ingredients and method are on ${esc(who)}'s own site. This app only links to it.</p>`;
+}
+function syncRecipeView(){
+  const m=location.hash.match(/^#recipe-([a-z0-9]+)$/), view=$("#recipeView"), sheet=view.querySelector(".sheet");
+  const r=m&&_recipes?_recipes.find(x=>recipeId(x)===m[1]):null;
+  if(!r){ view.hidden=true; sheet.innerHTML=""; return; } // emptying it stops any playing video
+  sheet.innerHTML=recipePageHTML(r); sheet.scrollTop=0; view.hidden=false;
+}
+function closeRecipe(){ if(/^#recipe-/.test(location.hash)) history.replaceState(null,"",location.pathname+location.search); syncRecipeView(); }
+window.addEventListener("hashchange",syncRecipeView);
+document.addEventListener("click",e=>{ if(e.target.closest("[data-recipe-close]")||e.target===$("#recipeView")) closeRecipe(); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&!$("#recipeView").hidden) closeRecipe(); });
 // Up to n recipes for a dish: kit-friendly ones first, different creators where possible, rotating by day.
 function recipesFor(dish,kit,seed,n=3){
   if(!_recipes) return [];
@@ -975,6 +1021,7 @@ function kitCardHTML(p,dayName){
 }
 // What to cook for a plan; `day` (from dayPlan, plus a name) labels it with that day.
 function cookCardHTML(p,day){
+  _cookCtx={name:day?day.name:"Today",plan:p,x:day||(_cookout&&_cookout.today)};
   const yt=(h,q)=>"https://www.youtube.com/@"+h+"/search?query="+encodeURIComponent(q);
   const rows=!p.top?`<p>Every bit of kit is benched${day?" that day":""}. Order a takeaway and plan the next cook.</p>`:
     p.dishes.map(d=>`<div class="dish"><div>
@@ -983,10 +1030,10 @@ function cookCardHTML(p,day){
         <p>${esc(d.desc)}</p>
         <p class="vids">▶ Videos: ${d.by.map(k=>`<a href="${yt(PITMASTERS[k].h,d.q)}" target="_blank" rel="noopener">${esc(PITMASTERS[k].name)}</a>`).join(" · ")}</p></div>
       <div class="links">${(()=>{ const rs=recipesFor(d.key,d.kit,p.seed);
-        return rs.length?rs.map(r=>`<a class="recipe" href="${esc(r.u)}" target="_blank" rel="noopener">${esc(r.t)}<small>${esc(PITMASTERS[r.c]?PITMASTERS[r.c].name:r.c)} ↗</small></a>`).join("")
+        return rs.length?rs.map(r=>`<a class="recipe" href="#recipe-${recipeId(r)}">${r.v?"▶ ":""}${esc(r.t)}<small>${esc(creatorName(r.c))}${r.v?" · video":""}</small></a>`).join("")
           :`<span class="on">No written recipes indexed yet — try the videos.</span>`; })()}</div></div>`).join("");
   return `<div class="card"><h2>What to cook · ${day?esc(day.name):"today"}</h2>${rows}
-    <p class="disclaim">Recipes open on each creator's own website (index of ${_recipes?_recipes.length.toLocaleString("en-GB"):"their"} recipes${_recipesBuilt?", updated "+esc(_recipesBuilt):""}). Videos search their YouTube channels: ${Object.values(PITMASTERS).map(x=>`<a href="https://www.youtube.com/@${x.h}" target="_blank" rel="noopener">${esc(x.name)}</a>`).join(" · ")}.</p></div>`;
+    <p class="disclaim">Tap a recipe for its video and a link to the full recipe on the creator's site (index of ${_recipes?_recipes.length.toLocaleString("en-GB"):"their"} recipes${_recipesBuilt?", updated "+esc(_recipesBuilt):""}). Videos search their YouTube channels: ${Object.values(PITMASTERS).map(x=>`<a href="https://www.youtube.com/@${x.h}" target="_blank" rel="noopener">${esc(x.name)}</a>`).join(" · ")}.</p></div>`;
 }
 document.addEventListener("click",e=>{
   const btn=e.target.closest("[data-day]"); if(!btn||!_cookout) return;
