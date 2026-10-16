@@ -1860,7 +1860,10 @@ async function mtShow(kind){
   const p=_lastPlace||{lat:53.2911,lon:-3.0647}; _mt.__marker.setLngLat([p.lon,p.lat]);
   if(_mtLayer){ mtStop(); try{ _mt.removeLayer(_mtLayer.id); }catch(e){} _mtLayer=null; }
   const W=window.maptilerweather;
-  const lay=kind==="mtrain"?new W.PrecipitationLayer({opacity:0.85}):kind==="mttemp"?new W.TemperatureLayer({opacity:0.7}):new W.WindLayer();
+  // Radar-style colours so drizzle shows up (MapTiler's default ramp leaves anything under ~0.6 mm/h near-invisible)
+  const RAIN_RAMP=W.ColorRamp.fromArrayDefinition([[0,[120,170,220,0]],[0.08,[120,170,220,0]],[0.15,[120,180,235,170]],[0.5,[60,130,220,220]],
+    [1,[40,170,90,235]],[2,[150,200,40,240]],[4,[245,210,40,245]],[8,[245,140,30,250]],[16,[225,50,40,255]],[32,[190,40,170,255]]]);
+  const lay=kind==="mtrain"?new W.PrecipitationLayer({opacity:0.9,colorramp:RAIN_RAMP}):kind==="mttemp"?new W.TemperatureLayer({opacity:0.7}):new W.WindLayer();
   const labels=(_mt.getStyle().layers||[]).find(l=>l.type==="symbol"); // draw over land + sea, under place names
   _mt.addLayer(lay, labels?labels.id:undefined);
   _mtLayer=lay;
@@ -1869,7 +1872,7 @@ async function mtShow(kind){
   lay.setAnimationTime(Math.max(lay.getAnimationStart(),Math.min(lay.getAnimationEnd(),Date.now()/1000)));
   const sl=$("#timeline"); if(sl){ sl.min=0; sl.max=Math.round((lay.getAnimationEnd()-lay.getAnimationStart())/3600); }
   lay.on("tick",mtLabel); lay.on("animationTimeSet",mtLabel); mtLabel();
-  note.textContent=(kind==="mtrain"?"Rain forecast · mm/h":kind==="mttemp"?"Temperature forecast":"Wind forecast · particles flow downwind")+
+  note.textContent=(kind==="mtrain"?"Rain forecast · mm/h · can miss small passing showers (use Radar for right now)":kind==="mttemp"?"Temperature forecast":"Wind forecast · particles flow downwind")+
     " · MapTiler model data, stays sharp as you zoom · ▶ plays the next few days";
 }
 function selectLayer(kind){
