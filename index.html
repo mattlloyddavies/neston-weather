@@ -678,20 +678,114 @@ function bleacherWear(feels,pop,wind,uv,code,evn){
 
 /* ================= BBQ / grill forecast ================= */
 const hhmm = ms => new Date(ms).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'UTC'});
+/* ================= BBQ plan =================
+   One decision drives BOTH the "BBQ forecast" and "What to cook" cards, so they can't disagree.
+   The kit: a covered outdoor kitchen with partly open sides (Traeger, Blackstone, Clementi) — rain
+   doesn't matter under there, but storms and wind through the open sides do — plus open-air fire
+   kit (Kadai fire bowl, Weber kettle) that needs a dry, calm window. */
+const KIT={
+  traeger:{e:"💨",short:"Traeger",on:"on the Traeger"},
+  blackstone:{e:"🍳",short:"Blackstone",on:"on the Blackstone"},
+  clementi:{e:"🍕",short:"Clementi",on:"in the Clementi"},
+  kadai:{e:"🔥",short:"Kadai",on:"over the Kadai"},
+  kettle:{e:"⚫",short:"Kettle",on:"on the Weber kettle"}
+};
+function kitStatus(c){
+  const st={}, set=(k,ok,note)=>{ st[k]={ok,note}; };
+  if(c.storm){ Object.keys(KIT).forEach(k=>set(k,"no","Thunder about — nobody stands next to a steel cooker in lightning")); return st; }
+  if(c.wind>=25) set("traeger","maybe","Gusts through the open sides — expect temp swings and hungry pellets");
+  else if(c.feels<=0) set("traeger","maybe","Freezing — it'll eat pellets; use the insulation blanket");
+  else set("traeger","go","Happy under the roof");
+  if(c.wind>=22) set("blackstone","no","Burners will blow out in this wind");
+  else if(c.wind>=15) set("blackstone","maybe","Breezy — shield the burners");
+  else set("blackstone","go","Calm enough for the flat top");
+  if(c.gust>=35) set("clementi","maybe","Gusty — flames will lick out of the mouth");
+  else set("clementi","go","Ready to roar");
+  if(!c.openHours) set("kadai","no","No dry, calm spell left today");
+  else if(c.wind>=20) set("kadai","no","Too windy — sparks everywhere");
+  else if(c.wind>=12) set("kadai","maybe","Breezy — keep the fire small");
+  else set("kadai","go","Dry and calm — light it up");
+  if(!c.openHours) set("kettle","no","No dry spell left today");
+  else if(c.wind>=25) set("kettle","maybe","Windy — vents get twitchy");
+  else set("kettle","go","Good to go");
+  return st;
+}
+const DISHES={
+  brisket:{e:"🥩",name:"Brisket",q:"brisket",kit:"traeger",hrs:12,by:["chuds","pnp","madsci"]},
+  porkbutt:{e:"🐖",name:"Pulled pork",q:"pork butt",kit:"traeger",hrs:10,by:["heath","htbr","pnp"]},
+  beefribs:{e:"🦴",name:"Beef ribs",q:"beef ribs",kit:"traeger",hrs:8,by:["chuds","madsci","pnp"]},
+  ribs:{e:"🍖",name:"Pork ribs",q:"ribs",kit:"traeger",hrs:6,by:["heath","pnp","htbr"]},
+  burntends:{e:"🔥",name:"Pork belly burnt ends",q:"burnt ends",kit:"traeger",hrs:6,by:["heath","chuds","meatchurch"]},
+  chili:{e:"🌶️",name:"Smoked chilli",q:"chili",kit:"traeger",hrs:4,by:["heath","pitboys","meatchurch"]},
+  chicken:{e:"🐔",name:"Smoked whole chicken",q:"spatchcock chicken",kit:"traeger",hrs:2,by:["heath","htbr","meatchurch"]},
+  salmon:{e:"🐟",name:"Smoked salmon fillet",q:"salmon",kit:"traeger",hrs:1,by:["htbr","meatchurch","pitboys"]},
+  pizza:{e:"🍕",name:"Wood-fired pizza",q:"pizza",kit:"clementi",hrs:1,by:["frugoni","heath","pitboys"]},
+  smash:{e:"🍔",name:"Smash burgers",q:"smash burger",kit:"blackstone",hrs:1,by:["chuds","pitboys","heath"]},
+  cheesesteak:{e:"🥪",name:"Cheesesteaks",q:"cheesesteak",kit:"blackstone",hrs:1,by:["heath","meatchurch","htbr"]},
+  chops:{e:"🍽️",name:"Pork chops",q:"pork chops",kit:"blackstone",hrs:1,by:["heath","htbr","pitboys"]},
+  picanha:{e:"🔪",name:"Picanha over fire",q:"picanha",kit:"kadai",hrs:1,by:["frugoni","htbr","chuds"]},
+  tomahawk:{e:"🪓",name:"Tomahawk steak",q:"tomahawk",kit:"kadai",hrs:1,by:["frugoni","htbr","madsci"]},
+  lamb:{e:"🐑",name:"Lamb over the fire",q:"lamb",kit:"kadai",hrs:2,by:["frugoni","heath","htbr"]},
+  reversesear:{e:"🥩",name:"Reverse-seared steak",q:"reverse sear",kit:"kettle",hrs:1,by:["htbr","heath","madsci"]},
+  wings:{e:"🍗",name:"Chicken wings",q:"chicken wings",kit:"kettle",hrs:1,by:["heath","chuds","pitboys"]}
+};
+const MODES={
+  lowslow:{kit:"traeger",title:"Low-and-slow"},
+  overnight:{kit:"traeger",title:"An overnight smoke"},
+  pizza:{kit:"clementi",title:"Pizza night"},
+  griddle:{kit:"blackstone",title:"Griddle night"},
+  fire:{kit:"kadai",title:"Fire-bowl cooking"},
+  kettle:{kit:"kettle",title:"Kettle grilling"}
+};
+// Score each way of cooking today from the kit's status plus the day, the time and the weather.
+function bbqPlan(c){
+  const kit=kitStatus(c), cold=c.feels<=8, hot=c.feels>=25, niceOpen=c.openHours>=4&&c.wind<12&&!c.wetNow&&c.feels>=10&&c.feels<=24;
+  const weekend=c.dow===0||c.dow===6, friday=c.dow===5;
+  const sc={lowslow:3,overnight:2,pizza:2,griddle:2,fire:2,kettle:1};
+  if(c.hour>=16) delete sc.lowslow; else delete sc.overnight; // too late to start a long cook today
+  if(friday) sc.pizza+=5;
+  if(weekend&&c.hour<11&&sc.lowslow!=null) sc.lowslow+=3;
+  if(c.dow===5||c.dow===6) if(sc.overnight!=null) sc.overnight+=1; // tomorrow's a weekend day
+  if(cold){ sc.fire+=2; sc.pizza+=1; sc.griddle-=1; if(sc.lowslow!=null) sc.lowslow+=1; }
+  if(hot){ sc.griddle+=2; sc.fire+=1; sc.kettle+=1; if(sc.lowslow!=null) sc.lowslow-=2; }
+  if(c.wind>=18&&sc.lowslow!=null) sc.lowslow+=1;
+  if(niceOpen){ sc.kettle+=1; if(c.hour>=12) sc.fire+=2; } // fire bowl is a lunch-and-evening thing
+  if(c.hour>=17) sc.fire+=1;
+  const modes=Object.keys(sc).map(k=>{ const ok=kit[MODES[k].kit].ok; return {key:k,...MODES[k],ok,score:sc[k]-(ok==="maybe"?1:0)}; })
+    .filter(m=>m.ok!=="no").sort((a,b)=>b.score-a.score);
+  const top=modes[0]||null;
+  // runner-up shares the headline when it's close — and Friday pizza always shares with the next-best cook
+  const rest=modes.slice(1).filter(m=>top&&m.kit!==top.kit);
+  const second=rest[0]&&(rest[0].score>=top.score-2||(friday&&(top.key==="pizza"||rest[0].key==="pizza")))?rest[0]:null;
+  const picked=[top,second].filter(Boolean);
+  const headline=!top?"Hard pass":
+    top.title+(second?" or "+second.title.toLowerCase():"")+(friday&&picked.some(m=>m.key==="pizza")?" (it's Friday)":"");
+  // dishes: two from the top choice, one from the runner-up (three from the top if it's alone)
+  const left=Math.max(1,21-c.hour); // hours until a sensible dinner time
+  const pick=(m,n)=>{
+    let order;
+    if(m.key==="lowslow") order=(cold?["beefribs","chili","brisket","porkbutt","ribs","burntends","chicken","salmon"]
+      :hot?["ribs","salmon","chicken","burntends","porkbutt","brisket"]
+      :["brisket","porkbutt","ribs","burntends","beefribs","chicken","chili","salmon"]).filter(k=>DISHES[k].hrs<=left);
+    else if(m.key==="overnight") order=["porkbutt","brisket"];
+    else if(m.key==="pizza") order=["pizza"];
+    else if(m.key==="griddle") order=["smash","cheesesteak","chops"];
+    else if(m.key==="fire") order=cold?["tomahawk","picanha","lamb"]:hot?["lamb","picanha","tomahawk"]:["picanha","tomahawk","lamb"];
+    else order=hot?["wings","reversesear"]:["reversesear","wings"];
+    return order.slice(0,n).map(k=>({...DISHES[k],key:k,overnight:m.key==="overnight"}));
+  };
+  let dishes=!top?[]:second?[...pick(top,2),...pick(second,1)]:pick(top,3);
+  if(top&&dishes.length<3){ // e.g. pizza night has one dish — top up from the runner-up, then the top choice
+    const have=new Set(dishes.map(d=>d.key));
+    for(const d of [...(second?pick(second,3):[]),...pick(top,3)]){ if(dishes.length>=3) break; if(!have.has(d.key)){ have.add(d.key); dishes.push(d); } }
+  }
+  return {kit,modes,top,second,headline,dishes,vc:!top?"no":top.ok==="go"?"go":"maybe"};
+}
 function bbqReport(fc,cur){
-  const feels=cur.apparent_temperature, wind=cur.wind_speed_10m, code=cur.weather_code;
-  const storm=[95,96,99,82,65,75,86].includes(code);
-  const wet=[51,53,55,61,63,80,81,67,57].includes(code);
-  let label,vc,why;
-  if(storm){ label="Hard pass"; vc="no"; why="Thunder, downpours, the lot. Even the most stubborn dad respects lightning. Sausages under the grill indoors tonight."; }
-  else if(wet){ label="Gazebo grilling"; vc="maybe"; why="On-and-off drizzle. Gazebo up, lid down, brolly over the cook. This is the British way and we will not be stopped."; }
-  else if(wind>=25){ label="Fight the wind"; vc="maybe"; why="It's blowing a hoolie off the Dee. Flare-ups and runaway temps. Shield the grill or wait for a lull."; }
-  else if(feels<=0){ label="Hardcore only"; vc="maybe"; why="Below freezing. The gas bottle sulks and the tongs stick to your fingers. Bundle up, legend."; }
-  else if(feels<=8){ label="Coat-on BBQ"; vc="maybe"; why="Chilly but dry. Fleece on, preheat longer, lid closed, and keep the burgers moving."; }
-  else if(feels<=13){ label="Classic British BBQ"; vc="go"; why="Dry and double figures, which is basically a bank-holiday heatwave. Fire it up, fleeces optional."; }
-  else if(feels>=30){ label="Dawn or dusk"; vc="maybe"; why="Too hot to stand over coals at midday. In Britain, somehow. Grill late, cold drink mandatory."; }
-  else { label="Fire it up"; vc="go"; why="Proper BBQ weather. Dry, warm, and begging for something over charcoal. Get the neighbours round before it clouds over."; }
-  // best grilling window left today
+  const feels=cur.apparent_temperature, wind=cur.wind_speed_10m, gust=cur.wind_gusts_10m, code=cur.weather_code;
+  const storm=[95,96,99].includes(code);
+  const wetNow=[51,53,55,61,63,65,80,81,82,67,57].includes(code);
+  // best open-air window left today (for the Kadai and the kettle — the covered kit doesn't need one)
   const h=fc.hourly, off=(fc.utc_offset_seconds||0)*1000, nowU=Date.now()+off, todayStr=new Date(nowU).toISOString().slice(0,10);
   let i=h.time.findIndex(t=>Date.parse(t+"Z")>=nowU-3600000); if(i<0) i=0;
   const sc=k=>{ let s=2;
@@ -706,15 +800,22 @@ function bbqReport(fc,cur){
     if(sc(k)>=3){ if(curA<0) curA=k; if(bestA<0 || (k-curA)>(bestB-bestA)){ bestA=curA; bestB=k; } }
     else curA=-1;
   }
-  let window=null;
-  if(bestA>=0) window=hhmm(Date.parse(h.time[bestA]+"Z"))+"–"+hhmm(Date.parse(h.time[bestB]+"Z")+3600000);
-  let smoker;
-  if(wind>=18) smoker="Low-and-slow today? "+Math.round(wind)+" mph of wind will swing your temps and eat charcoal. Ride the vents.";
-  else if(feels<=0) smoker="Cold-smoke day. Budget extra fuel and time, and insulate the cook chamber if you can.";
-  else smoker="Great day for low-and-slow. Steady air, steady smoke.";
-  return {label,vc,why,window,hours:bestA>=0?bestB-bestA+1:0,storm,wet,wind,feels,smoker,week:bbqWeek(fc)};
+  const window=bestA>=0?hhmm(Date.parse(h.time[bestA]+"Z"))+"–"+hhmm(Date.parse(h.time[bestB]+"Z")+3600000):null;
+  const local=new Date(nowU);
+  const plan=bbqPlan({storm,wetNow,wind,gust,feels,openHours:bestA>=0?bestB-bestA+1:0,hour:local.getUTCHours(),dow:local.getUTCDay()});
+  let why;
+  if(storm) why="Thunder and lightning. Even the most stubborn dad respects that. Sausages under the grill indoors tonight.";
+  else if(wetNow) why="Raining, but that's what the roof's for. The covered kit's good to go; the Kadai and kettle sit this one out.";
+  else if(wind>=25) why="Blowing a hoolie off the Dee, and those open sides let it in. Lid-down cooking only.";
+  else if(feels<=0) why="Below freezing. The Traeger will eat pellets like it's paid by the bag. Bundle up, legend.";
+  else if(feels<=8) why=plan.kit.kadai.ok==="go"?"Chilly but dry. Fleece on, and a fire bowl's never more welcome.":"Chilly out. Fleece on, lid shut, and cook under the roof.";
+  else if(feels<=13) why="Dry and double figures, which is basically a bank-holiday heatwave.";
+  else if(feels>=30) why="Too hot to stand over coals at midday. In Britain, somehow. Cook late, cold drink mandatory.";
+  else why=plan.kit.kadai.ok==="no"?"Mild enough, but the open-air kit's benched. The kitchen roof earns its keep today.":"Proper BBQ weather. Dry, warm, and begging for something over the fire.";
+  return {label:plan.headline,vc:plan.vc,why,window,plan,week:bbqWeek(fc)};
 }
-/* ================= what to cook (weather-matched BBQ ideas) =================
+
+/* ================= What to cook — dishes for exactly the cooks the BBQ forecast picked =================
    Links search inside each creator's own YouTube channel, so they always land on real videos. */
 const PITMASTERS={
   meatchurch:{name:"Meat Church",h:"MeatChurchBBQ"}, chuds:{name:"Chuds BBQ",h:"ChudsBBQ"},
@@ -722,44 +823,22 @@ const PITMASTERS={
   pitboys:{name:"BBQ Pit Boys",h:"BBQPitBoys"}, madsci:{name:"Mad Scientist",h:"MadScientistBBQ"},
   frugoni:{name:"Al Frugoni",h:"alfrugoniofc"}, htbr:{name:"HowToBBQRight",h:"HowToBBQRight"}
 };
-const COOKS={
-  brisket:{e:"🥩",name:"Brisket",q:"brisket",why:"The big one. A calm, dry day like this is what a 12-hour cook needs.",by:["chuds","meatchurch","madsci"]},
-  pulled:{e:"🐖",name:"Pulled pork shoulder",q:"pork butt",why:"Set it and forget it. Shoulder shrugs off a bit of drizzle under the gazebo.",by:["heath","htbr","meatchurch"]},
-  ribs:{e:"🍖",name:"Pork ribs",q:"ribs",why:"Five or six hours of decent weather is perfect rib territory.",by:["heath","htbr","pnp"]},
-  burntends:{e:"🔥",name:"Pork belly burnt ends",q:"burnt ends",why:"Smoke while it's dry, then finish them in a pan in the oven if the weather turns.",by:["meatchurch","htbr","chuds"]},
-  chicken:{e:"🐔",name:"Spatchcock chicken",q:"spatchcock chicken",why:"About 90 minutes, lid down the whole time. Shower-proof.",by:["htbr","pitboys","pnp"]},
-  wings:{e:"🍗",name:"Wings",q:"chicken wings",why:"Quick, hot and done before anyone gets sunburnt.",by:["htbr","meatchurch","heath"]},
-  steak:{e:"🥩",name:"Reverse-seared steak",q:"reverse sear steak",why:"Hot and fast, under an hour. A quick win whatever the sky does next.",by:["madsci","chuds","frugoni"]},
-  picanha:{e:"🔪",name:"Picanha over fire",q:"picanha",why:"Live-fire showpiece. Under an hour, so it fits a short dry window.",by:["frugoni","madsci","pitboys"]},
-  smash:{e:"🍔",name:"Smash burgers",q:"smash burger",why:"Griddle, ten minutes, done. You can cook these under a porch roof.",by:["meatchurch","pitboys","chuds"]},
-  skewers:{e:"🍢",name:"Skewers & kebabs",q:"kebab",why:"Fast, light and made for warm evenings with a cold drink.",by:["frugoni","pitboys","pnp"]},
-  salmon:{e:"🐟",name:"Salmon",q:"salmon",why:"Twenty minutes and nothing heavy. Ideal when it's warm.",by:["htbr","pnp","meatchurch"]},
-  chilli:{e:"🌶️",name:"Smoked chilli",q:"chili",why:"Smoke the meat for an hour, then simmer the pot indoors. Proper cold-day food.",by:["chuds","meatchurch","pitboys"]},
-  shortribs:{e:"🦴",name:"Beef short ribs",q:"beef ribs",why:"Low and slow comfort. Budget extra fuel in the cold.",by:["madsci","chuds","meatchurch"]},
-  tomahawk:{e:"🪓",name:"Tomahawk on the fire",q:"tomahawk",why:"Big steak, open flames, crisp air. Fire is half the fun.",by:["frugoni","madsci","pitboys"]}
-};
-function cookIdeas(b){
-  let lead,keys;
-  if(b.storm){ lead="Not a grilling day. Pick cooks that start on the smoker and finish indoors, or a griddle under cover."; keys=["chilli","burntends","smash"]; }
-  else if(b.wet){ lead="Lid-down cooks that don't mind a gazebo."; keys=["pulled","chicken","smash"]; }
-  else if(b.wind>=25){ lead="Short, hot cooks. Skip the long smoke, because the wind will wreck your temps."; keys=["steak","wings","chicken"]; }
-  else if(b.feels<=8){ lead="Cold-day comfort. Budget extra fuel and keep the lid shut."; keys=b.hours>=6&&b.wind<15?["shortribs","chilli","tomahawk"]:["chilli","tomahawk","steak"]; }
-  else if(b.feels>=25){ lead="Quick and light. Nobody wants to babysit a smoker in this heat."; keys=["wings","salmon","skewers"]; }
-  else if(b.hours>=7&&b.wind<15){ lead="A proper smoking day, so go big."; keys=["brisket","ribs","picanha"]; }
-  else if(b.hours>=4){ lead="Good for a medium cook, but not quite a brisket day."; keys=["ribs","chicken","picanha"]; }
-  else { lead="Not much of a window left today, so keep it quick."; keys=["smash","steak","skewers"]; }
-  const best=b.week&&b.week.best;
-  const plan=best&&best.i>0&&best.s>=4?`Planning ahead? <b>${best.day}</b> looks like your big-cook day (${best.hi}°, ${best.pop}% rain).`:null;
-  return {lead,plan,dishes:keys.map(k=>COOKS[k])};
+function kitRow(plan){
+  return `<div class="factors">${Object.keys(KIT).map(k=>{ const s=plan.kit[k];
+    return `<span class="factor" title="${esc(s.note)}">${KIT[k].e} ${KIT[k].short} ${s.ok==="go"?"✅":s.ok==="maybe"?"⚠️":"❌"}</span>`; }).join("")}</div>`;
 }
 function cookCard(b){
-  const c=cookIdeas(b), yt=(h,q)=>"https://www.youtube.com/@"+h+"/search?query="+encodeURIComponent(q);
+  const p=b.plan, yt=(h,q)=>"https://www.youtube.com/@"+h+"/search?query="+encodeURIComponent(q);
+  if(!p.top) return `<div class="card"><h2>What to cook</h2><div class="verdict no">Nothing outside today</div>
+    <p>Every bit of kit is benched. Order a takeaway and plan the next cook: ${b.week.pick}</p></div>`;
+  const best=b.week&&b.week.best;
+  const ahead=best&&best.i>0&&best.s>=4?`<p style="margin-top:12px">Planning ahead? <b>${best.day}</b> looks like your big-cook day (${best.hi}°, ${best.pop}% rain).</p>`:"";
   return `<div class="card"><h2>What to cook</h2>
-    <div class="verdict" style="font-size:1.1rem;color:var(--ink)">${c.lead}</div>
-    <ul class="cooks">${c.dishes.map(d=>`<li><b>${d.e} ${esc(d.name)}</b><p>${esc(d.why)}</p>
+    <div class="verdict" style="font-size:1.1rem;color:var(--ink)">${esc(p.headline)}</div>
+    <ul class="cooks">${p.dishes.map(d=>`<li><b>${d.e} ${esc(d.name)}</b> <span class="disclaim">${KIT[d.kit].on}${d.overnight?" · overnight, ready tomorrow":""}</span>
       <div class="factors">${d.by.map(k=>`<a class="factor" href="${yt(PITMASTERS[k].h,d.q)}" target="_blank" rel="noopener">▶ ${esc(PITMASTERS[k].name)}</a>`).join("")}</div></li>`).join("")}</ul>
-    ${c.plan?`<p style="margin-top:12px">${c.plan}</p>`:""}
-    <p class="disclaim" style="margin-top:10px">Links search each creator's YouTube channel. More from ${Object.values(PITMASTERS).map(p=>`<a href="https://www.youtube.com/@${p.h}" target="_blank" rel="noopener">${esc(p.name)}</a>`).join(" · ")}.</p></div>`;
+    ${ahead}
+    <p class="disclaim" style="margin-top:10px">Links search each creator's YouTube channel. More from ${Object.values(PITMASTERS).map(x=>`<a href="https://www.youtube.com/@${x.h}" target="_blank" rel="noopener">${esc(x.name)}</a>`).join(" · ")}.</p></div>`;
 }
 
 // Rate each of the next 7 days for a BBQ and pick the best one.
@@ -784,7 +863,7 @@ function bbqWeek(fc){
   let pick;
   if(!best||best.s<0) pick="No proper BBQ day in the next week. Classic. Keep the charcoal dry and your expectations low.";
   else if(best.s>=4) pick="Best BBQ day: <b>"+best.day+"</b> ("+best.hi+"°, "+best.pop+"% rain). Buy the burgers now before Tesco sells out.";
-  else pick="Best of a mixed bunch: <b>"+best.day+"</b> ("+best.hi+"°, "+best.pop+"% rain). Gazebo on standby.";
+  else pick="Best of a mixed bunch: <b>"+best.day+"</b> ("+best.hi+"°, "+best.pop+"% rain). The covered kit's on standby.";
   return {days:out,best,pick};
 }
 
@@ -1383,13 +1462,13 @@ function render(place, fc, air, alerts, sports){
       <div class="card"><h2>Humidity &amp; comfort</h2><div class="verdict" style="font-size:1.6rem;color:var(--ink)">${hum}%</div>
         <p>${humidityNote(hum,temp)}</p></div>
       ${pro ? `<div class="card"><h2>BBQ forecast</h2>
-        <div class="verdict ${bbq.vc}">${bbq.label}</div>
+        <div class="verdict ${bbq.vc}">${esc(bbq.label)}</div>
         <p>${bbq.why}</p>
-        <p style="margin-top:8px">${bbq.window?`<b>Best window today:</b> ${bbq.window}`:`No clean grilling window left today. Tomorrow's another cookout.`}</p>
+        ${kitRow(bbq.plan)}
+        <p style="margin-top:8px">${bbq.window?`<b>Open-air window (Kadai, kettle):</b> ${bbq.window}`:`No dry open-air window left today, so it's covered kit only.`}</p>
         <div class="factors" style="margin-top:10px">${bbq.week.days.map(x=>`<span class="factor" title="${x.hi}°, ${x.pop}% rain">${x.dow} ${x.mark}</span>`).join("")}</div>
-        <p style="margin-top:8px">${bbq.week.pick}</p>
-        <p class="disclaim" style="margin-top:10px">🔥 ${bbq.smoker}</p></div>`
-      : lockedCard("BBQ forecast","Grill verdict, the best grilling window today, the best BBQ day this week, and a low-and-slow smoker note.")}
+        <p style="margin-top:8px">${bbq.week.pick}</p></div>`
+      : lockedCard("BBQ forecast","Today's cook, which bits of kit the weather allows, the open-air window and the best BBQ day this week.")}
       ${pro ? cookCard(bbq) : lockedCard("What to cook","Weather-matched BBQ cook ideas with recipe videos from Meat Church, Chuds BBQ, Heath Riles and more.")}
     </div>
     </section>
