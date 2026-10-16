@@ -198,6 +198,12 @@
 
   /* Field & Stream */
   .factors{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 4px}
+  .cooks{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:12px}
+  .cooks b{font-family:var(--disp)}
+  .cooks p{margin:2px 0 0}
+  .cooks .factors{margin:6px 0 0}
+  a.factor{text-decoration:none;color:var(--ink)}
+  a.factor:hover{border-color:var(--accent);color:var(--accent)}
   .factor{display:flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--line);
     border-radius:8px;padding:5px 9px;font-size:.8rem}
   .periods{display:flex;flex-direction:column;gap:0;margin-top:6px}
@@ -706,8 +712,56 @@ function bbqReport(fc,cur){
   if(wind>=18) smoker="Low-and-slow today? "+Math.round(wind)+" mph of wind will swing your temps and eat charcoal. Ride the vents.";
   else if(feels<=0) smoker="Cold-smoke day. Budget extra fuel and time, and insulate the cook chamber if you can.";
   else smoker="Great day for low-and-slow. Steady air, steady smoke.";
-  return {label,vc,why,window,smoker,week:bbqWeek(fc)};
+  return {label,vc,why,window,hours:bestA>=0?bestB-bestA+1:0,storm,wet,wind,feels,smoker,week:bbqWeek(fc)};
 }
+/* ================= what to cook (weather-matched BBQ ideas) =================
+   Links search inside each creator's own YouTube channel, so they always land on real videos. */
+const PITMASTERS={
+  meatchurch:{name:"Meat Church",h:"MeatChurchBBQ"}, chuds:{name:"Chuds BBQ",h:"ChudsBBQ"},
+  heath:{name:"Heath Riles",h:"HeathRilesBBQ"}, pnp:{name:"Pellets and Pits",h:"PelletsandPits"},
+  pitboys:{name:"BBQ Pit Boys",h:"BBQPitBoys"}, madsci:{name:"Mad Scientist",h:"MadScientistBBQ"},
+  frugoni:{name:"Al Frugoni",h:"alfrugoniofc"}, htbr:{name:"HowToBBQRight",h:"HowToBBQRight"}
+};
+const COOKS={
+  brisket:{e:"🥩",name:"Brisket",q:"brisket",why:"The big one. A calm, dry day like this is what a 12-hour cook needs.",by:["chuds","meatchurch","madsci"]},
+  pulled:{e:"🐖",name:"Pulled pork shoulder",q:"pork butt",why:"Set it and forget it. Shoulder shrugs off a bit of drizzle under the gazebo.",by:["heath","htbr","meatchurch"]},
+  ribs:{e:"🍖",name:"Pork ribs",q:"ribs",why:"Five or six hours of decent weather is perfect rib territory.",by:["heath","htbr","pnp"]},
+  burntends:{e:"🔥",name:"Pork belly burnt ends",q:"burnt ends",why:"Smoke while it's dry, then finish them in a pan in the oven if the weather turns.",by:["meatchurch","htbr","chuds"]},
+  chicken:{e:"🐔",name:"Spatchcock chicken",q:"spatchcock chicken",why:"About 90 minutes, lid down the whole time. Shower-proof.",by:["htbr","pitboys","pnp"]},
+  wings:{e:"🍗",name:"Wings",q:"chicken wings",why:"Quick, hot and done before anyone gets sunburnt.",by:["htbr","meatchurch","heath"]},
+  steak:{e:"🥩",name:"Reverse-seared steak",q:"reverse sear steak",why:"Hot and fast, under an hour. A quick win whatever the sky does next.",by:["madsci","chuds","frugoni"]},
+  picanha:{e:"🔪",name:"Picanha over fire",q:"picanha",why:"Live-fire showpiece. Under an hour, so it fits a short dry window.",by:["frugoni","madsci","pitboys"]},
+  smash:{e:"🍔",name:"Smash burgers",q:"smash burger",why:"Griddle, ten minutes, done. You can cook these under a porch roof.",by:["meatchurch","pitboys","chuds"]},
+  skewers:{e:"🍢",name:"Skewers & kebabs",q:"kebab",why:"Fast, light and made for warm evenings with a cold drink.",by:["frugoni","pitboys","pnp"]},
+  salmon:{e:"🐟",name:"Salmon",q:"salmon",why:"Twenty minutes and nothing heavy. Ideal when it's warm.",by:["htbr","pnp","meatchurch"]},
+  chilli:{e:"🌶️",name:"Smoked chilli",q:"chili",why:"Smoke the meat for an hour, then simmer the pot indoors. Proper cold-day food.",by:["chuds","meatchurch","pitboys"]},
+  shortribs:{e:"🦴",name:"Beef short ribs",q:"beef ribs",why:"Low and slow comfort. Budget extra fuel in the cold.",by:["madsci","chuds","meatchurch"]},
+  tomahawk:{e:"🪓",name:"Tomahawk on the fire",q:"tomahawk",why:"Big steak, open flames, crisp air. Fire is half the fun.",by:["frugoni","madsci","pitboys"]}
+};
+function cookIdeas(b){
+  let lead,keys;
+  if(b.storm){ lead="Not a grilling day. Pick cooks that start on the smoker and finish indoors, or a griddle under cover."; keys=["chilli","burntends","smash"]; }
+  else if(b.wet){ lead="Lid-down cooks that don't mind a gazebo."; keys=["pulled","chicken","smash"]; }
+  else if(b.wind>=25){ lead="Short, hot cooks. Skip the long smoke, because the wind will wreck your temps."; keys=["steak","wings","chicken"]; }
+  else if(b.feels<=8){ lead="Cold-day comfort. Budget extra fuel and keep the lid shut."; keys=b.hours>=6&&b.wind<15?["shortribs","chilli","tomahawk"]:["chilli","tomahawk","steak"]; }
+  else if(b.feels>=25){ lead="Quick and light. Nobody wants to babysit a smoker in this heat."; keys=["wings","salmon","skewers"]; }
+  else if(b.hours>=7&&b.wind<15){ lead="A proper smoking day, so go big."; keys=["brisket","ribs","picanha"]; }
+  else if(b.hours>=4){ lead="Good for a medium cook, but not quite a brisket day."; keys=["ribs","chicken","picanha"]; }
+  else { lead="Not much of a window left today, so keep it quick."; keys=["smash","steak","skewers"]; }
+  const best=b.week&&b.week.best;
+  const plan=best&&best.i>0&&best.s>=4?`Planning ahead? <b>${best.day}</b> looks like your big-cook day (${best.hi}°, ${best.pop}% rain).`:null;
+  return {lead,plan,dishes:keys.map(k=>COOKS[k])};
+}
+function cookCard(b){
+  const c=cookIdeas(b), yt=(h,q)=>"https://www.youtube.com/@"+h+"/search?query="+encodeURIComponent(q);
+  return `<div class="card"><h2>What to cook</h2>
+    <div class="verdict" style="font-size:1.1rem;color:var(--ink)">${c.lead}</div>
+    <ul class="cooks">${c.dishes.map(d=>`<li><b>${d.e} ${esc(d.name)}</b><p>${esc(d.why)}</p>
+      <div class="factors">${d.by.map(k=>`<a class="factor" href="${yt(PITMASTERS[k].h,d.q)}" target="_blank" rel="noopener">▶ ${esc(PITMASTERS[k].name)}</a>`).join("")}</div></li>`).join("")}</ul>
+    ${c.plan?`<p style="margin-top:12px">${c.plan}</p>`:""}
+    <p class="disclaim" style="margin-top:10px">Links search each creator's YouTube channel. More from ${Object.values(PITMASTERS).map(p=>`<a href="https://www.youtube.com/@${p.h}" target="_blank" rel="noopener">${esc(p.name)}</a>`).join(" · ")}.</p></div>`;
+}
+
 // Rate each of the next 7 days for a BBQ and pick the best one.
 function bbqWeek(fc){
   const d=fc.daily, out=[];
@@ -1336,6 +1390,7 @@ function render(place, fc, air, alerts, sports){
         <p style="margin-top:8px">${bbq.week.pick}</p>
         <p class="disclaim" style="margin-top:10px">🔥 ${bbq.smoker}</p></div>`
       : lockedCard("BBQ forecast","Grill verdict, the best grilling window today, the best BBQ day this week, and a low-and-slow smoker note.")}
+      ${pro ? cookCard(bbq) : lockedCard("What to cook","Weather-matched BBQ cook ideas with recipe videos from Meat Church, Chuds BBQ, Heath Riles and more.")}
     </div>
     </section>
 
