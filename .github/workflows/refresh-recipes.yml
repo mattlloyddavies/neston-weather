@@ -1,0 +1,58 @@
+name: Refresh recipe index
+
+on:
+  schedule:
+    - cron: "0 5 * * 1"  # Mondays 05:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-recipes
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Rebuild recipes.json
+        run: |
+          git show HEAD:recipes.json > "$RUNNER_TEMP/old.json"
+          python scripts/build_recipes.py
+
+      # build_recipes.py stamps "built" with today's date and drops a creator whose sitemap
+      # fails to load, so: ignore the date when deciding whether anything changed, and refuse
+      # to publish an index where a creator has vanished or shrunk by more than half.
+      - name: Check the new index
+        id: check
+        run: |
+          python - "$RUNNER_TEMP/old.json" recipes.json <<'EOF'
+          import json, os, sys
+          old = json.load(open(sys.argv[1], encoding="utf-8"))["recipes"]
+          new = json.load(open(sys.argv[2], encoding="utf-8"))["recipes"]
+          count = lambda rs: {c: sum(r["c"] == c for r in rs) for c in {r["c"] for r in rs}}
+          before, after = count(old), count(new)
+          bad = [f"{c}: {n} -> {after.get(c, 0)}" for c, n in sorted(before.items()) if after.get(c, 0) < n / 2]
+          if bad:
+              sys.exit("Not publishing, creators lost too many recipes (a site may be down):\n  " + "\n  ".join(bad))
+          changed = old != new
+          print(f"{len(old)} -> {len(new)} recipes, {'changed' if changed else 'no change'}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"changed={'true' if changed else 'false'}\n")
+          EOF
+
+      - name: Commit and push
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add recipes.json
+          git commit -m "Refresh recipe index"
+          git push

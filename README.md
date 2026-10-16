@@ -34,6 +34,8 @@ creator and dish only, no recipe content. Rebuild it with:
 
     python scripts/build_recipes.py
 
+It also refreshes itself weekly (Mondays 05:00 UTC) via the GitHub Actions workflow `.github/workflows/refresh-recipes.yml`, committing only when the recipe list changes.
+
 ## Sources
 - Forecast, humidity, air quality, pressure, UV, sun and tides: [Open-Meteo](https://open-meteo.com)
 - Map weather layers: [MapTiler Weather](https://www.maptiler.com/weather/)
