@@ -198,13 +198,22 @@
 
   /* Field & Stream */
   .factors{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 4px}
+  .cookout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:14px;margin-bottom:14px;align-items:start}
+  .cookout .stack{display:grid;gap:14px}
+  @media (max-width:760px){.cookout{grid-template-columns:minmax(0,1fr)}}
+  .dish{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 18px;padding:14px 0;border-top:1px solid var(--line)}
+  .dish:first-of-type{border-top:0;padding-top:6px}
+  .dish b{font-family:var(--disp);font-size:1.02rem}
+  .dish p{margin:4px 0 0}
+  .dish .links{display:flex;flex-direction:column;gap:6px;min-width:170px}
+  @media (max-width:560px){.dish{grid-template-columns:minmax(0,1fr)}.dish .links{flex-direction:row;flex-wrap:wrap;min-width:0}}
   .kitlist{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:9px}
   .kitlist li{display:flex;gap:10px;align-items:baseline}
   .kitlist .ks{flex:0 0 1.4em;text-align:center}
   .kitlist small{display:block;color:var(--ink-soft);font-size:.8rem}
   .cooks{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:12px}
   .cooks b{font-family:var(--disp)}
-  .cooks .on{font-size:.74rem;color:var(--ink-soft)}
+  .cooks .on,.dish .on{font-size:.78rem;color:var(--ink-soft);margin-top:2px}
   .cooks p{margin:2px 0 0}
   .cooks .factors{margin:6px 0 0}
   a.factor{text-decoration:none;color:var(--ink)}
@@ -719,27 +728,27 @@ function kitStatus(c){
   return st;
 }
 const DISHES={
-  brisket:{e:"🥩",name:"Brisket",q:"brisket",kit:"traeger",hrs:12,by:["chuds","pnp","atbbq"]},
-  porkbutt:{e:"🐖",name:"Pulled pork",q:"pork butt",kit:"traeger",hrs:10,by:["heath","htbr","pnp"]},
-  beefribs:{e:"🦴",name:"Beef ribs",q:"beef ribs",kit:"traeger",hrs:8,by:["chuds","madsci","pnp"]},
-  ribs:{e:"🍖",name:"Pork ribs",q:"ribs",kit:"traeger",hrs:6,by:["heath","pnp","htbr"]},
-  burntends:{e:"🔥",name:"Pork belly burnt ends",q:"burnt ends",kit:"traeger",hrs:6,by:["heath","chuds","meatchurch"]},
-  chili:{e:"🌶️",name:"Smoked chilli",q:"chili",kit:"traeger",hrs:4,by:["heath","pitboys","meatchurch"]},
-  chicken:{e:"🐔",name:"Smoked whole chicken",q:"spatchcock chicken",kit:"traeger",hrs:2,by:["heath","htbr","meatchurch"]},
-  salmon:{e:"🐟",name:"Smoked salmon fillet",q:"salmon",kit:"traeger",hrs:1,by:["htbr","meatchurch","pitboys"]},
-  pizza:{e:"🍕",name:"Wood-fired pizza",q:"pizza",kit:"clementi",hrs:1,by:["wfoc","atbbq"]},
-  flatbread:{e:"🫓",name:"Flatbreads & focaccia",q:"flatbread",kit:"clementi",hrs:1,by:["atbbq","wfoc"]},
-  smash:{e:"🍔",name:"Smash burgers",q:"smash burger",kit:"blackstone",hrs:1,by:["atbbq","chuds","pitboys"]},
-  cheesesteak:{e:"🥪",name:"Cheesesteaks",q:"cheesesteak",kit:"blackstone",hrs:1,by:["heath","meatchurch","htbr"]},
-  chops:{e:"🍽️",name:"Pork chops",q:"pork chops",kit:"blackstone",hrs:1,by:["heath","htbr","pitboys"]},
-  picanha:{e:"🔪",name:"Picanha over fire",q:"picanha",kit:"kadai",on:"on the Kadai grill",hrs:1,by:["frugoni","htbr","chuds"]},
-  tomahawk:{e:"🪓",name:"Tomahawk steak",q:"tomahawk",kit:"kadai",on:"on the Kadai grill",hrs:1,by:["frugoni","htbr","madsci"]},
-  asado:{e:"✝️",name:"Asado-cross lamb",q:"asado",kit:"kadai",on:"on the Kadai asado cross",hrs:5,by:["frugoni","madsci"]},
-  firepot:{e:"🍲",name:"Fire-pot stew or chilli",q:"dutch oven",kit:"kadai",on:"in the pot on the Kadai tripod",hrs:3,by:["pitboys","frugoni","atbbq"]},
-  plancha:{e:"🦐",name:"Plancha prawns & veg",q:"plancha",kit:"kadai",on:"on the Kadai plancha",hrs:1,by:["meatchurch","atbbq","htbr"]},
-  skewers:{e:"🍢",name:"Skewers & kebabs",q:"skewer",kit:"kadai",on:"on Kadai skewers",hrs:1,by:["atbbq","pitboys","htbr"]},
-  reversesear:{e:"🥩",name:"Reverse-seared steak",q:"reverse sear",kit:"kettle",hrs:1,by:["htbr","heath","madsci"]},
-  wings:{e:"🍗",name:"Chicken wings",q:"chicken wings",kit:"kettle",hrs:1,by:["heath","chuds","pitboys"]}
+  brisket:{desc:"The big one. Rub it, then let the Traeger tick along at around 110–120°C from dawn (or overnight). Wrap once the bark's set, pull it when it probes like butter, and rest it for at least an hour.",e:"🥩",name:"Brisket",q:"brisket",kit:"traeger",hrs:12,by:["chuds","pnp","atbbq"]},
+  porkbutt:{desc:"Hard to mess up and feeds a crowd. Smoke it low until it's around 95°C inside and the bone wiggles free, then pull. Overnight on the Traeger means lunch is sorted.",e:"🐖",name:"Pulled pork",q:"pork butt",kit:"traeger",hrs:10,by:["heath","htbr","pnp"]},
+  beefribs:{desc:"Dino ribs: salt, pepper and patience. Smoke low until they're probe-tender and jiggle when you move the tray.",e:"🦴",name:"Beef ribs",q:"beef ribs",kit:"traeger",hrs:8,by:["chuds","madsci","pnp"]},
+  ribs:{desc:"Spares or baby backs, smoked low, then glazed for the last half hour. A proper afternoon cook.",e:"🍖",name:"Pork ribs",q:"ribs",kit:"traeger",hrs:6,by:["heath","pnp","htbr"]},
+  burntends:{desc:"Cubed pork belly, smoked until it takes on colour, then braised in butter, honey and sauce until sticky. Meat candy.",e:"🔥",name:"Pork belly burnt ends",q:"burnt ends",kit:"traeger",hrs:6,by:["heath","chuds","meatchurch"]},
+  chili:{desc:"Smoke the mince or chuck for an hour, then let the pot simmer in the smoker so the chilli soaks up the wood.",e:"🌶️",name:"Smoked chilli",q:"chili",kit:"traeger",hrs:4,by:["heath","pitboys","meatchurch"]},
+  chicken:{desc:"Spatchcock it, season under the skin, and turn the Traeger up at the end for crisp skin. Done in a couple of hours.",e:"🐔",name:"Smoked whole chicken",q:"spatchcock chicken",kit:"traeger",hrs:2,by:["heath","htbr","meatchurch"]},
+  salmon:{desc:"A side of salmon straight on the grates or on a cedar plank. Low heat, brown sugar and dill. Under an hour.",e:"🐟",name:"Smoked salmon fillet",q:"salmon",kit:"traeger",hrs:1,by:["htbr","meatchurch","pitboys"]},
+  pizza:{desc:"Get the Clementi properly hot, stretch the dough thin, and turn it as it cooks. A minute or two a pizza. Margherita first, then go wild.",e:"🍕",name:"Wood-fired pizza",q:"pizza",kit:"clementi",hrs:1,by:["wfoc","atbbq"]},
+  flatbread:{desc:"While the oven's hot: garlic flatbreads, focaccia or naan to go with whatever else is on.",e:"🫓",name:"Flatbreads & focaccia",q:"flatbread",kit:"clementi",hrs:1,by:["atbbq","wfoc"]},
+  smash:{desc:"A ball of mince on a ripping-hot flat top. Smash it hard, cheese on, done in three minutes. Make more than you think.",e:"🍔",name:"Smash burgers",q:"smash burger",kit:"blackstone",hrs:1,by:["atbbq","chuds","pitboys"]},
+  cheesesteak:{desc:"Thin-sliced ribeye, onions and peppers on the griddle, cheese melted over, into a soft roll.",e:"🥪",name:"Cheesesteaks",q:"cheesesteak",kit:"blackstone",hrs:1,by:["heath","meatchurch","htbr"]},
+  chops:{desc:"Thick-cut chops seared hard on the flat top, then basted with butter, garlic and thyme.",e:"🍽️",name:"Pork chops",q:"pork chops",kit:"blackstone",hrs:1,by:["heath","htbr","pitboys"]},
+  picanha:{desc:"Rump cap with the fat on. Either fold it onto skewers in thick C-shapes or grill it whole and slice against the grain.",e:"🔪",name:"Picanha over fire",q:"picanha",kit:"kadai",on:"on the Kadai grill",hrs:1,by:["frugoni","htbr","chuds"]},
+  tomahawk:{desc:"A big bone-in ribeye on the Kadai grill. Cook it gently up high, then drop it over the embers to sear. Rest it, slice it, share it.",e:"🪓",name:"Tomahawk steak",q:"tomahawk",kit:"kadai",on:"on the Kadai grill",hrs:1,by:["frugoni","htbr","madsci"]},
+  asado:{desc:"Butterflied lamb splayed on the asado cross beside a steady fire, turned now and then. Hours of slow radiant heat: the full Argentine show.",e:"✝️",name:"Asado-cross lamb",q:"asado",kit:"kadai",on:"on the Kadai asado cross",hrs:5,by:["frugoni","madsci"]},
+  firepot:{desc:"Stew, chilli or a curry in the pot hung from the tripod over the fire. Warms the cook and the crowd.",e:"🍲",name:"Fire-pot stew or chilli",q:"dutch oven",kit:"kadai",on:"in the pot on the Kadai tripod",hrs:3,by:["pitboys","frugoni","atbbq"]},
+  plancha:{desc:"King prawns, chorizo and peppers sizzling on the plancha over the fire. Quick, garlicky, and made for a cold beer.",e:"🦐",name:"Plancha prawns & veg",q:"plancha",kit:"kadai",on:"on the Kadai plancha",hrs:1,by:["meatchurch","atbbq","htbr"]},
+  skewers:{desc:"Chicken, lamb or halloumi skewers over the fire. Marinate them in the morning, cook them in ten minutes.",e:"🍢",name:"Skewers & kebabs",q:"skewer",kit:"kadai",on:"on Kadai skewers",hrs:1,by:["atbbq","pitboys","htbr"]},
+  reversesear:{desc:"Two-zone on the kettle: indirect until the middle hits about 50°C, then sear over the coals. The way to do a thick steak.",e:"🥩",name:"Reverse-seared steak",q:"reverse sear",kit:"kettle",hrs:1,by:["htbr","heath","madsci"]},
+  wings:{desc:"Two-zone on the kettle: indirect until the skin's crisp, then toss in sauce and give them a minute over the coals.",e:"🍗",name:"Chicken wings",q:"chicken wings",kit:"kettle",hrs:1,by:["heath","chuds","pitboys"]}
 };
 const MODES={
   lowslow:{kit:"traeger",title:"Low-and-slow"},
@@ -852,7 +861,8 @@ function bbqCard(b){
     <p style="margin-top:8px">${b.week.pick}</p>
     <p style="margin-top:10px"><button class="linkbtn" data-goto="cook">What to cook &amp; kit status →</button></p></div>`;
 }
-// Cookout tab: today's play, the kit, what to cook, and the week ahead — all from the same plan.
+// Cookout tab: today's play + the kit stacked on the left, the cooks across the double-width right, the week below.
+const cookTime=h=>h>=12?"12+ hours":h>=2?"about "+h+" hours":"about an hour";
 function cookoutCards(b){
   const p=b.plan, yt=(h,q)=>"https://www.youtube.com/@"+h+"/search?query="+encodeURIComponent(q);
   const play=`<div class="card"><h2>Today's play</h2>
@@ -863,16 +873,19 @@ function cookoutCards(b){
     <ul class="kitlist">${Object.keys(KIT).map(k=>{ const st=p.kit[k];
       return `<li><span class="ks">${st.ok==="go"?"✅":st.ok==="maybe"?"⚠️":"❌"}</span><div><b>${KIT[k].e} ${KIT[k].name}</b><small>${esc(st.note)}</small></div></li>`; }).join("")}</ul>
     <p class="disclaim">Traeger, Blackstone and Clementi live under the roof, so rain doesn't bench them, but storms and wind through the open sides do. The Kadai and kettle need a dry, calm window.</p></div>`;
-  const cooks=!p.top?`<p>Every bit of kit is benched. Order a takeaway and plan the next cook.</p>`:
-    `<ul class="cooks">${p.dishes.map(d=>`<li><b>${d.e} ${esc(d.name)}</b> <span class="on">${d.on||KIT[d.kit].on}${d.overnight?" · overnight, ready tomorrow":""}</span>
-      <div class="factors">${d.by.map(k=>`<a class="factor" href="${yt(PITMASTERS[k].h,d.q)}" target="_blank" rel="noopener">▶ ${esc(PITMASTERS[k].name)}</a>`).join("")}</div></li>`).join("")}</ul>`;
-  const cook=`<div class="card"><h2>What to cook</h2>${cooks}
+  const rows=!p.top?`<p>Every bit of kit is benched. Order a takeaway and plan the next cook.</p>`:
+    p.dishes.map(d=>`<div class="dish"><div>
+        <b>${d.e} ${esc(d.name)}</b>
+        <div class="on">${d.on||KIT[d.kit].on} · ${d.overnight?"overnight, ready tomorrow":cookTime(d.hrs)}</div>
+        <p>${esc(d.desc)}</p></div>
+      <div class="links">${d.by.map(k=>`<a class="factor" href="${yt(PITMASTERS[k].h,d.q)}" target="_blank" rel="noopener">▶ ${esc(PITMASTERS[k].name)}</a>`).join("")}</div></div>`).join("");
+  const cook=`<div class="card"><h2>What to cook</h2>${rows}
     <p class="disclaim">Recipe links search each creator's YouTube channel. More from ${Object.values(PITMASTERS).map(x=>`<a href="https://www.youtube.com/@${x.h}" target="_blank" rel="noopener">${esc(x.name)}</a>`).join(" · ")}.</p></div>`;
   const week=`<div class="card"><h2>The week ahead</h2>
-    <div class="factors">${b.week.days.map(x=>`<span class="factor" title="${x.hi}°, ${x.pop}% rain">${x.dow} ${x.mark}</span>`).join("")}</div>
+    <div class="factors">${b.week.days.map(x=>`<span class="factor" title="${x.hi}°, ${x.pop}% rain">${x.dow} ${x.mark} ${x.hi}°</span>`).join("")}</div>
     <p style="margin-top:8px">${b.week.pick}</p>
     <p class="disclaim">🔥 big-cook day · 🍔 good · 🧥 coat-on · 🌧️ wet. Rated on the day's high, rain chance and wind.</p></div>`;
-  return play+kit+cook+week;
+  return `<div class="cookout"><div class="stack">${play}${kit}</div>${cook}</div>${week}`;
 }
 
 // Rate each of the next 7 days for a BBQ and pick the best one.
@@ -1518,7 +1531,7 @@ function render(place, fc, air, alerts, sports){
 
     <section class="tab-panel" data-panel="cook" hidden>
     <div class="section-head"><h2>The Cookout</h2><small>weather-driven outdoor cooking</small></div>
-    <div class="grid">${pro ? cookoutCards(bbq) : lockedCard("The Cookout","What to cook today for the weather and your kit, with recipe videos, plus the best BBQ day this week.")}</div>
+    ${pro ? cookoutCards(bbq) : `<div class="grid">${lockedCard("The Cookout","What to cook today for the weather and your kit, with recipe videos, plus the best BBQ day this week.")}</div>`}
     </section>
 
     <section class="tab-panel" data-panel="nature" hidden>
