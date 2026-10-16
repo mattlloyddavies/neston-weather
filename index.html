@@ -198,9 +198,12 @@
 
   /* Field & Stream */
   .factors{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 4px}
-  .cookout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:14px;margin-bottom:14px;align-items:start}
+  .cookout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:14px;margin-bottom:14px;align-items:stretch}
+  #cookCard{position:relative;min-height:600px}
+  #cookCard>.card{position:absolute;inset:0;overflow-y:auto;scrollbar-gutter:stable}
+  .dish .fam{font-size:.78rem;color:var(--accent)}
   .cookout .stack{display:grid;gap:14px}
-  @media (max-width:760px){.cookout{grid-template-columns:minmax(0,1fr)}}
+  @media (max-width:760px){.cookout{grid-template-columns:minmax(0,1fr)}#cookCard{min-height:0}#cookCard>.card{position:static;height:640px}}
   .dish{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 18px;padding:14px 0;border-top:1px solid var(--line)}
   .dish:first-of-type{border-top:0;padding-top:6px}
   .dish b{font-family:var(--disp);font-size:1.02rem}
@@ -740,9 +743,17 @@ const DISHES={
   salmon:{desc:"A side of salmon straight on the grates or on a cedar plank. Low heat, brown sugar and dill. Under an hour.",e:"🐟",name:"Smoked salmon fillet",q:"salmon",kit:"traeger",hrs:1,by:["htbr","meatchurch","pitboys"]},
   pizza:{desc:"Get the Clementi properly hot, stretch the dough thin, and turn it as it cooks. A minute or two a pizza. Margherita first, then go wild.",e:"🍕",name:"Wood-fired pizza",q:"pizza",kit:"clementi",hrs:1,by:["wfoc","atbbq"]},
   flatbread:{desc:"While the oven's hot: garlic flatbreads, focaccia or naan to go with whatever else is on.",e:"🫓",name:"Flatbreads & focaccia",q:"flatbread",kit:"clementi",hrs:1,by:["atbbq","wfoc"]},
-  smash:{desc:"A ball of mince on a ripping-hot flat top. Smash it hard, cheese on, done in three minutes. Make more than you think.",e:"🍔",name:"Smash burgers",q:"smash burger",kit:"blackstone",hrs:1,by:["atbbq","chuds","pitboys"]},
-  cheesesteak:{desc:"Thin-sliced ribeye, onions and peppers on the griddle, cheese melted over, into a soft roll.",e:"🥪",name:"Cheesesteaks",q:"cheesesteak",kit:"blackstone",hrs:1,by:["heath","meatchurch","htbr"]},
-  chops:{desc:"Thick-cut chops seared hard on the flat top, then basted with butter, garlic and thyme.",e:"🍽️",name:"Pork chops",q:"pork chops",kit:"blackstone",hrs:1,by:["heath","htbr","pitboys"]},
+  smash:{quick:true,desc:"A ball of mince on a ripping-hot flat top. Smash it hard, cheese on, done in three minutes. Make more than you think.",e:"🍔",name:"Smash burgers",q:"smash burger",kit:"blackstone",hrs:1,by:["atbbq","chuds","pitboys"]},
+  cheesesteak:{quick:true,desc:"Thin-sliced ribeye, onions and peppers on the griddle, cheese melted over, into a soft roll.",e:"🥪",name:"Cheesesteaks",q:"philly cheesesteak",kit:"blackstone",hrs:1,by:["htbr","heath","meatchurch"]},
+  chops:{desc:"Thick-cut chops seared hard on the flat top, then basted with butter, garlic and thyme.",e:"🍽️",name:"Pork chops",q:"pork chops",kit:"blackstone",hrs:1,quick:true,by:["heath","htbr","pitboys"]},
+  tacos:{desc:"Mince smashed straight onto a tortilla on the flat top, flipped, cheese and salsa on. The kids build their own.",e:"🌮",name:"Smash tacos",q:"tacos",kit:"blackstone",hrs:1,quick:true,by:["atbbq", "meatchurch", "heath"]},
+  quesadilla:{desc:"Tortillas, cheese and leftover pulled pork or chicken, crisped on the griddle. Ten minutes, zero complaints.",e:"🫓",name:"Quesadillas",q:"quesadilla",kit:"blackstone",hrs:1,quick:true,by:["atbbq", "heath", "frugoni"]},
+  fajitas:{desc:"Sliced chicken or steak with peppers and onions sizzling on the flat top. Wraps, salsa and soured cream on the table.",e:"🌶️",name:"Fajitas",q:"fajitas",kit:"blackstone",hrs:1,quick:true,by:["htbr", "meatchurch", "atbbq"]},
+  friedrice:{desc:"Day-old rice, egg, veg and whatever meat's in the fridge, tossed on a ripping-hot griddle. Hibachi night at home.",e:"🍚",name:"Griddle fried rice",q:"fried rice",kit:"blackstone",hrs:1,quick:true,by:["meatchurch", "htbr", "atbbq"]},
+  breakfast:{desc:"The full English all at once: bacon, sausages, eggs, mushrooms and tomatoes side by side, plus pancakes for the kids.",e:"🍳",name:"Griddle breakfast",q:"breakfast",kit:"blackstone",hrs:1,quick:true,by:["atbbq", "meatchurch", "htbr"]},
+  crunchwrap:{desc:"A tortilla folded round mince, cheese and a crunchy tostada, toasted on the griddle until it holds together.",e:"🌯",name:"Crunchwraps",q:"crunchwrap",kit:"blackstone",hrs:1,quick:true,by:["chuds", "atbbq"]},
+  pattymelt:{desc:"Smashed patties, caramelised onions and cheese between slices of toasted bread. A burger in toastie form.",e:"🥪",name:"Patty melts",q:"patty melt",kit:"blackstone",hrs:1,quick:true,by:["heath", "chuds", "atbbq"]},
+  prawns:{desc:"Prawns in garlic butter on the flat top in five minutes. Serve with crusty bread or over rice.",e:"🦐",name:"Garlic-butter prawns",q:"shrimp",kit:"blackstone",hrs:1,quick:true,by:["heath", "pitboys", "atbbq"]},
   picanha:{desc:"Rump cap with the fat on. Either fold it onto skewers in thick C-shapes or grill it whole and slice against the grain.",e:"🔪",name:"Picanha over fire",q:"picanha",kit:"kadai",on:"on the Kadai grill",hrs:1,by:["frugoni","htbr","chuds"]},
   tomahawk:{desc:"A big bone-in ribeye on the Kadai grill. Cook it gently up high, then drop it over the embers to sear. Rest it, slice it, share it.",e:"🪓",name:"Tomahawk steak",q:"tomahawk",kit:"kadai",on:"on the Kadai grill",hrs:1,by:["frugoni","htbr","madsci"]},
   asado:{desc:"Butterflied lamb splayed on the asado cross beside a steady fire, turned now and then. Hours of slow radiant heat: the full Argentine show.",e:"✝️",name:"Asado-cross lamb",q:"asado",kit:"kadai",on:"on the Kadai asado cross",hrs:5,by:["frugoni","madsci"]},
@@ -760,6 +771,13 @@ const MODES={
   fire:{kit:"kadai",title:"Fire-bowl cooking"},
   kettle:{kit:"kettle",title:"Kettle grilling"}
 };
+// Quick flat-top meals, rotated by date so each day suggests something different.
+const GRIDDLE=["smash","tacos","fajitas","friedrice","quesadilla","cheesesteak","pattymelt","prawns","crunchwrap","chops"];
+function griddleOrder(c){
+  const r=((c.seed||0)%GRIDDLE.length+GRIDDLE.length)%GRIDDLE.length, list=[...GRIDDLE.slice(r),...GRIDDLE.slice(0,r)];
+  const weekendMorning=(c.dow===0||c.dow===6)&&(c.hour<11||c.wholeDay);
+  return weekendMorning?["breakfast",...list]:list;
+}
 // Score each way of cooking today from the kit's status plus the day, the time and the weather.
 function bbqPlan(c){
   const kit=kitStatus(c), cold=c.feels<=8, hot=c.feels>=25, niceOpen=c.openHours>=4&&c.wind<12&&!c.wetNow&&c.feels>=6&&c.feels<=24;
@@ -767,6 +785,7 @@ function bbqPlan(c){
   const sc={lowslow:3,overnight:2,pizza:2,griddle:2,fire:2,kettle:1};
   if(c.hour>=16) delete sc.lowslow; else delete sc.overnight; // too late to start a long cook today
   if(friday) sc.pizza+=5;
+  if(c.dow>=1&&c.dow<=4) sc.griddle+=1; // school night: quick tea
   if(weekend&&c.hour<11&&sc.lowslow!=null) sc.lowslow+=3;
   if(c.dow===5||c.dow===6) if(sc.overnight!=null) sc.overnight+=1; // tomorrow's a weekend day
   if(cold){ sc.fire+=2; sc.pizza+=1; sc.griddle-=1; if(sc.lowslow!=null) sc.lowslow+=1; }
@@ -792,7 +811,7 @@ function bbqPlan(c){
       :["brisket","porkbutt","ribs","burntends","beefribs","chicken","chili","salmon"]).filter(k=>DISHES[k].hrs<=left);
     else if(m.key==="overnight") order=["porkbutt","brisket"];
     else if(m.key==="pizza") order=["pizza","flatbread"];
-    else if(m.key==="griddle") order=["smash","cheesesteak","chops"];
+    else if(m.key==="griddle") order=griddleOrder(c);
     else if(m.key==="fire"){
       order=cold?["firepot","tomahawk","picanha"]:hot?["skewers","plancha","picanha"]:["picanha","skewers","tomahawk","plancha"];
       if(c.openHours>=5&&c.wind<12&&!cold&&!hot) order.unshift("asado"); // the asado cross wants a long, calm, dry spell
@@ -805,6 +824,11 @@ function bbqPlan(c){
   if(top&&dishes.length<3){ // e.g. pizza night has one dish — top up from the runner-up, then the top choice
     const have=new Set(dishes.map(d=>d.key));
     for(const d of [...(second?pick(second,3):[]),...pick(top,3)]){ if(dishes.length>=3) break; if(!have.has(d.key)){ have.add(d.key); dishes.push(d); } }
+  }
+  // quick family option: if the Blackstone's usable and isn't already on the list, add a fast griddle meal
+  if(top&&kit.blackstone.ok!=="no"&&!dishes.some(d=>d.kit==="blackstone")){
+    const k=griddleOrder(c).find(k=>!dishes.some(d=>d.key===k));
+    if(k) dishes.push({...DISHES[k],key:k,family:true});
   }
   return {kit,modes,top,second,headline,dishes,vc:!top?"no":top.ok==="go"?"go":"maybe"};
 }
@@ -832,9 +856,10 @@ function dayPlan(fc,i){
   const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
   const feels=avg(idx.map(k=>h.apparent_temperature[k])), wind=avg(idx.map(k=>h.wind_speed_10m[k]));
   const gust=d.wind_gusts_10m_max?d.wind_gusts_10m_max[i]:wind*1.5, pop=d.precipitation_probability_max?d.precipitation_probability_max[i]:0;
+  const dow=new Date(dayStr+"T12:00:00Z").getUTCDay();
   const from=h.time.findIndex(t=>t===dayStr+"T09:00"), w=openWindow(h,dayStr,from<0?0:from,wind,feels);
   const plan=bbqPlan({storm:[95,96,99].includes(d.weather_code[i]),wetNow:pop>=60,wind,gust,feels,
-    openHours:w.hours,hour:9,wholeDay:true,dow:new Date(dayStr+"T12:00:00Z").getUTCDay()});
+    openHours:w.hours,hour:dow===0||dow===6?9:17,wholeDay:true,dow,seed:Math.floor(Date.parse(dayStr+"T00:00:00Z")/86400000)});
   return {plan,window:w.text,feels:Math.round(feels),wind:Math.round(wind),pop:Math.round(pop),hi:Math.round(d.temperature_2m_max[i])};
 }
 function bbqReport(fc,cur){
@@ -847,7 +872,7 @@ function bbqReport(fc,cur){
   const ow=openWindow(h,todayStr,i,wind,feels), bestA=ow.bestA, bestB=ow.bestB;
   const window=bestA>=0?hhmm(Date.parse(h.time[bestA]+"Z"))+"–"+hhmm(Date.parse(h.time[bestB]+"Z")+3600000):null;
   const local=new Date(nowU);
-  const plan=bbqPlan({storm,wetNow,wind,gust,feels,openHours:bestA>=0?bestB-bestA+1:0,hour:local.getUTCHours(),dow:local.getUTCDay()});
+  const plan=bbqPlan({storm,wetNow,wind,gust,feels,openHours:bestA>=0?bestB-bestA+1:0,hour:local.getUTCHours(),dow:local.getUTCDay(),seed:Math.floor(nowU/86400000)});
   let why;
   if(storm) why="Thunder and lightning. Even the most stubborn dad respects that. Sausages under the grill indoors tonight.";
   else if(wetNow) why="Raining, but that's what the roof's for. The covered kit's good to go; the Kadai and kettle sit this one out.";
@@ -882,7 +907,7 @@ function bbqCard(b){
     <p style="margin-top:10px"><button class="linkbtn" data-goto="cook">What to cook &amp; kit status →</button></p></div>`;
 }
 // Cookout tab: today's play + the kit stacked on the left, the cooks across the double-width right, the week below.
-const cookTime=h=>h>=12?"12+ hours":h>=2?"about "+h+" hours":"about an hour";
+const cookTime=d=>d.quick?"15–30 minutes":d.hrs>=12?"12+ hours":d.hrs>=2?"about "+d.hrs+" hours":"about an hour";
 function cookoutCards(b){
   const p=b.plan, yt=(h,q)=>"https://www.youtube.com/@"+h+"/search?query="+encodeURIComponent(q);
   const play=`<div class="card"><h2>Today's play</h2>
@@ -911,7 +936,7 @@ function cookCardHTML(p,day){
   const rows=!p.top?`<p>Every bit of kit is benched${day?" that day":""}. Order a takeaway and plan the next cook.</p>`:
     p.dishes.map(d=>`<div class="dish"><div>
         <b>${d.e} ${esc(d.name)}</b>
-        <div class="on">${d.on||KIT[d.kit].on} · ${d.overnight?"overnight, ready tomorrow":cookTime(d.hrs)}</div>
+        <div class="on">${d.family?"<b class=\"fam\">Quick family option</b> · ":""}${d.on||KIT[d.kit].on} · ${d.overnight?"overnight, ready tomorrow":cookTime(d)}</div>
         <p>${esc(d.desc)}</p></div>
       <div class="links">${d.by.map(k=>`<a class="factor" href="${yt(PITMASTERS[k].h,d.q)}" target="_blank" rel="noopener">▶ ${esc(PITMASTERS[k].name)}</a>`).join("")}</div></div>`).join("");
   return `<div class="card"><h2>What to cook${day?" · "+esc(day.name):""}</h2>${head}${rows}
@@ -923,6 +948,7 @@ document.addEventListener("click",e=>{
   const i=+btn.dataset.day, box=$("#cookCard"); if(!box) return;
   document.querySelectorAll("#weekDays .daybtn").forEach(x=>x.classList.toggle("sel",+x.dataset.day===i));
   if(i===0){ box.innerHTML=cookCardHTML(_cookout.today.plan,null); return; }
+  box.scrollTop=0;
   const dp=dayPlan(_cookout.fc,i), info=_cookout.today.week.days[i];
   box.innerHTML=cookCardHTML(dp.plan,{...dp,name:info?info.day.replace(/^./,c=>c.toUpperCase()):"That day"});
   if(window.innerWidth<=760) box.scrollIntoView({behavior:"smooth",block:"start"});
