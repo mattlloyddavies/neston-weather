@@ -682,7 +682,8 @@ const hhmm = ms => new Date(ms).toLocaleTimeString('en-GB',{hour:'2-digit',minut
    One decision drives BOTH the "BBQ forecast" and "What to cook" cards, so they can't disagree.
    The kit: a covered outdoor kitchen with partly open sides (Traeger, Blackstone, Clementi) — rain
    doesn't matter under there, but storms and wind through the open sides do — plus open-air fire
-   kit (Kadai fire bowl, Weber kettle) that needs a dry, calm window. */
+   kit (Kadai fire bowl with the full set of accessories — grill, tripod and pot, plancha, skewers,
+   asado cross — and a Weber kettle) that needs a dry, calm window. */
 const KIT={
   traeger:{e:"💨",short:"Traeger",on:"on the Traeger"},
   blackstone:{e:"🍳",short:"Blackstone",on:"on the Blackstone"},
@@ -711,7 +712,7 @@ function kitStatus(c){
   return st;
 }
 const DISHES={
-  brisket:{e:"🥩",name:"Brisket",q:"brisket",kit:"traeger",hrs:12,by:["chuds","pnp","madsci"]},
+  brisket:{e:"🥩",name:"Brisket",q:"brisket",kit:"traeger",hrs:12,by:["chuds","pnp","atbbq"]},
   porkbutt:{e:"🐖",name:"Pulled pork",q:"pork butt",kit:"traeger",hrs:10,by:["heath","htbr","pnp"]},
   beefribs:{e:"🦴",name:"Beef ribs",q:"beef ribs",kit:"traeger",hrs:8,by:["chuds","madsci","pnp"]},
   ribs:{e:"🍖",name:"Pork ribs",q:"ribs",kit:"traeger",hrs:6,by:["heath","pnp","htbr"]},
@@ -719,13 +720,17 @@ const DISHES={
   chili:{e:"🌶️",name:"Smoked chilli",q:"chili",kit:"traeger",hrs:4,by:["heath","pitboys","meatchurch"]},
   chicken:{e:"🐔",name:"Smoked whole chicken",q:"spatchcock chicken",kit:"traeger",hrs:2,by:["heath","htbr","meatchurch"]},
   salmon:{e:"🐟",name:"Smoked salmon fillet",q:"salmon",kit:"traeger",hrs:1,by:["htbr","meatchurch","pitboys"]},
-  pizza:{e:"🍕",name:"Wood-fired pizza",q:"pizza",kit:"clementi",hrs:1,by:["frugoni","heath","pitboys"]},
-  smash:{e:"🍔",name:"Smash burgers",q:"smash burger",kit:"blackstone",hrs:1,by:["chuds","pitboys","heath"]},
+  pizza:{e:"🍕",name:"Wood-fired pizza",q:"pizza",kit:"clementi",hrs:1,by:["wfoc","atbbq"]},
+  flatbread:{e:"🫓",name:"Flatbreads & focaccia",q:"flatbread",kit:"clementi",hrs:1,by:["atbbq","wfoc"]},
+  smash:{e:"🍔",name:"Smash burgers",q:"smash burger",kit:"blackstone",hrs:1,by:["atbbq","chuds","pitboys"]},
   cheesesteak:{e:"🥪",name:"Cheesesteaks",q:"cheesesteak",kit:"blackstone",hrs:1,by:["heath","meatchurch","htbr"]},
   chops:{e:"🍽️",name:"Pork chops",q:"pork chops",kit:"blackstone",hrs:1,by:["heath","htbr","pitboys"]},
-  picanha:{e:"🔪",name:"Picanha over fire",q:"picanha",kit:"kadai",hrs:1,by:["frugoni","htbr","chuds"]},
-  tomahawk:{e:"🪓",name:"Tomahawk steak",q:"tomahawk",kit:"kadai",hrs:1,by:["frugoni","htbr","madsci"]},
-  lamb:{e:"🐑",name:"Lamb over the fire",q:"lamb",kit:"kadai",hrs:2,by:["frugoni","heath","htbr"]},
+  picanha:{e:"🔪",name:"Picanha over fire",q:"picanha",kit:"kadai",on:"on the Kadai grill",hrs:1,by:["frugoni","htbr","chuds"]},
+  tomahawk:{e:"🪓",name:"Tomahawk steak",q:"tomahawk",kit:"kadai",on:"on the Kadai grill",hrs:1,by:["frugoni","htbr","madsci"]},
+  asado:{e:"✝️",name:"Asado-cross lamb",q:"asado",kit:"kadai",on:"on the Kadai asado cross",hrs:5,by:["frugoni","madsci"]},
+  firepot:{e:"🍲",name:"Fire-pot stew or chilli",q:"dutch oven",kit:"kadai",on:"in the pot on the Kadai tripod",hrs:3,by:["pitboys","frugoni","atbbq"]},
+  plancha:{e:"🦐",name:"Plancha prawns & veg",q:"plancha",kit:"kadai",on:"on the Kadai plancha",hrs:1,by:["meatchurch","atbbq","htbr"]},
+  skewers:{e:"🍢",name:"Skewers & kebabs",q:"skewer",kit:"kadai",on:"on Kadai skewers",hrs:1,by:["atbbq","pitboys","htbr"]},
   reversesear:{e:"🥩",name:"Reverse-seared steak",q:"reverse sear",kit:"kettle",hrs:1,by:["htbr","heath","madsci"]},
   wings:{e:"🍗",name:"Chicken wings",q:"chicken wings",kit:"kettle",hrs:1,by:["heath","chuds","pitboys"]}
 };
@@ -768,9 +773,13 @@ function bbqPlan(c){
       :hot?["ribs","salmon","chicken","burntends","porkbutt","brisket"]
       :["brisket","porkbutt","ribs","burntends","beefribs","chicken","chili","salmon"]).filter(k=>DISHES[k].hrs<=left);
     else if(m.key==="overnight") order=["porkbutt","brisket"];
-    else if(m.key==="pizza") order=["pizza"];
+    else if(m.key==="pizza") order=["pizza","flatbread"];
     else if(m.key==="griddle") order=["smash","cheesesteak","chops"];
-    else if(m.key==="fire") order=cold?["tomahawk","picanha","lamb"]:hot?["lamb","picanha","tomahawk"]:["picanha","tomahawk","lamb"];
+    else if(m.key==="fire"){
+      order=cold?["firepot","tomahawk","picanha"]:hot?["skewers","plancha","picanha"]:["picanha","skewers","tomahawk","plancha"];
+      if(c.openHours>=5&&c.wind<12&&!cold&&!hot) order.unshift("asado"); // the asado cross wants a long, calm, dry spell
+      order=order.filter(k=>DISHES[k].hrs<=Math.min(left,Math.max(1,c.openHours)));
+    }
     else order=hot?["wings","reversesear"]:["reversesear","wings"];
     return order.slice(0,n).map(k=>({...DISHES[k],key:k,overnight:m.key==="overnight"}));
   };
@@ -821,7 +830,8 @@ const PITMASTERS={
   meatchurch:{name:"Meat Church",h:"MeatChurchBBQ"}, chuds:{name:"Chuds BBQ",h:"ChudsBBQ"},
   heath:{name:"Heath Riles",h:"HeathRilesBBQ"}, pnp:{name:"Pellets and Pits",h:"PelletsandPits"},
   pitboys:{name:"BBQ Pit Boys",h:"BBQPitBoys"}, madsci:{name:"Mad Scientist",h:"MadScientistBBQ"},
-  frugoni:{name:"Al Frugoni",h:"alfrugoniofc"}, htbr:{name:"HowToBBQRight",h:"HowToBBQRight"}
+  frugoni:{name:"Al Frugoni",h:"alfrugoniofc"}, htbr:{name:"HowToBBQRight",h:"HowToBBQRight"},
+  atbbq:{name:"All Things BBQ",h:"AllThingsBBQ"}, wfoc:{name:"Wood Fired Oven Chef",h:"TheWoodFiredOvenChef"}
 };
 function kitRow(plan){
   return `<div class="factors">${Object.keys(KIT).map(k=>{ const s=plan.kit[k];
@@ -835,7 +845,7 @@ function cookCard(b){
   const ahead=best&&best.i>0&&best.s>=4?`<p style="margin-top:12px">Planning ahead? <b>${best.day}</b> looks like your big-cook day (${best.hi}°, ${best.pop}% rain).</p>`:"";
   return `<div class="card"><h2>What to cook</h2>
     <div class="verdict" style="font-size:1.1rem;color:var(--ink)">${esc(p.headline)}</div>
-    <ul class="cooks">${p.dishes.map(d=>`<li><b>${d.e} ${esc(d.name)}</b> <span class="disclaim">${KIT[d.kit].on}${d.overnight?" · overnight, ready tomorrow":""}</span>
+    <ul class="cooks">${p.dishes.map(d=>`<li><b>${d.e} ${esc(d.name)}</b> <span class="disclaim">${d.on||KIT[d.kit].on}${d.overnight?" · overnight, ready tomorrow":""}</span>
       <div class="factors">${d.by.map(k=>`<a class="factor" href="${yt(PITMASTERS[k].h,d.q)}" target="_blank" rel="noopener">▶ ${esc(PITMASTERS[k].name)}</a>`).join("")}</div></li>`).join("")}</ul>
     ${ahead}
     <p class="disclaim" style="margin-top:10px">Links search each creator's YouTube channel. More from ${Object.values(PITMASTERS).map(x=>`<a href="https://www.youtube.com/@${x.h}" target="_blank" rel="noopener">${esc(x.name)}</a>`).join(" · ")}.</p></div>`;
