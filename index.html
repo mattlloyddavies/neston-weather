@@ -269,7 +269,8 @@
   .layer-sel button{font-family:var(--mono);font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;padding:7px 11px;border-radius:999px}
   .layer-sel button.sel{background:var(--accent);border-color:var(--accent);color:#fff}
   .radar-card{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
-  #map{height:min(62vh,560px);background:var(--panel-2)}
+  #map,#mtmap{height:min(62vh,560px);background:var(--panel-2)}
+  #mtmap[hidden],#map[hidden]{display:none}
   #map .leaflet-control-attribution{font-size:9px}
   #map.mapdark .leaflet-basemap-pane{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.9)}
   .radar-bottom{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line)}
@@ -396,12 +397,15 @@
         <div class="radar-top">
           <strong>Radar &amp; maps</strong>
           <div class="layer-sel">
-            <button data-layer="precip" class="sel">Precip</button>
-            <button data-layer="clouds">Clouds</button>
+            <button data-layer="precip" class="sel">Radar</button>
+            <button data-layer="mtrain" data-mt hidden>Rain</button>
+            <button data-layer="mttemp" data-mt hidden>Temp</button>
             <button data-layer="wind">Wind</button>
+            <button data-layer="clouds">Clouds</button>
           </div>
         </div>
         <div id="map"></div>
+        <div id="mtmap" hidden></div>
         <div id="radarBottom" class="radar-bottom">
           <button id="playBtn" class="icon" aria-label="Play radar loop">▶</button>
           <input id="timeline" type="range" min="0" max="12" value="12" aria-label="Radar time">
@@ -1819,12 +1823,63 @@ function showFrame(i){
 }
 function stopPlay(){ _playing=false; if(_playTimer) clearInterval(_playTimer); _playTimer=null; const b=$("#playBtn"); if(b) b.textContent="▶"; }
 function playRadar(){ if(_playing||!_frames.length) return; _playing=true; const b=$("#playBtn"); if(b) b.textContent="⏸"; _playTimer=setInterval(()=>showFrame(_frameIdx+1),600); }
+/* ---- MapTiler Weather: smooth forecast rain / temperature / wind that stays sharp at any zoom.
+   Runs on MapTiler's own (WebGL) map, so it lives in #mtmap next to the Leaflet radar map and
+   its libraries only load the first time one of these layers is picked. The key is public by
+   design — lock it to your site under "Allowed HTTP origins" at cloud.maptiler.com. */
+const MAPTILER_KEY="pZLzBQS8JDtc6IoOA4ch"; // restricted to mattlloyddavies.github.io (+ localhost:8765)
+const MT_SDK="https://cdn.maptiler.com/maptiler-sdk-js/v4.2.0/", MT_WX="https://cdn.maptiler.com/maptiler-weather/v4.0.1/";
+let _mt=null,_mtReady=null,_mtLayer=null,_mtPlaying=false;
+const isMT=k=>k==="mtrain"||k==="mttemp"||(k==="wind"&&!!MAPTILER_KEY);
+function loadScript(src){ return new Promise((res,rej)=>{ const el=document.createElement("script"); el.src=src; el.onload=res; el.onerror=rej; document.head.appendChild(el); }); }
+function mtInit(){
+  if(_mtReady) return _mtReady;
+  _mtReady=(async()=>{
+    const css=document.createElement("link"); css.rel="stylesheet"; css.href=MT_SDK+"maptiler-sdk.css"; document.head.appendChild(css);
+    await loadScript(MT_SDK+"maptiler-sdk.umd.min.js"); await loadScript(MT_WX+"maptiler-weather.umd.min.js");
+    const sdk=window.maptilersdk; sdk.config.apiKey=MAPTILER_KEY;
+    const p=_lastPlace||{lat:53.2911,lon:-3.0647};
+    _mt=new sdk.Map({container:"mtmap",style:sdk.MapStyle.BACKDROP,center:[p.lon,p.lat],zoom:MAP_ZOOM-1,minZoom:3,maxZoom:14});
+    await new Promise(r=>_mt.on("load",r));
+    _mt.__marker=new sdk.Marker({color:"#1f6f8b",scale:0.7}).setLngLat([p.lon,p.lat]).addTo(_mt);
+  })();
+  _mtReady.catch(()=>{ _mtReady=null; });
+  return _mtReady;
+}
+function mtLabel(){ if(!_mtLayer) return; const t=_mtLayer.getAnimationTimeDate(), lbl=$("#timeLabel"), sl=$("#timeline");
+  if(lbl) lbl.textContent=t.toLocaleDateString("en-GB",{weekday:"short"})+" "+t.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+  if(sl){ sl.value=Math.round((_mtLayer.getAnimationTime()-_mtLayer.getAnimationStart())/3600); } }
+function mtStop(){ _mtPlaying=false; if(_mtLayer) _mtLayer.animateByFactor(0); const b=$("#playBtn"); if(b) b.textContent="▶"; }
+function mtPlay(){ if(!_mtLayer) return; _mtPlaying=true; _mtLayer.animateByFactor(3600); const b=$("#playBtn"); if(b) b.textContent="⏸"; }
+async function mtShow(kind){
+  const note=$("#mapNote"); note.textContent="Loading MapTiler…";
+  $("#map").hidden=true; $("#mtmap").hidden=false;
+  try{ await mtInit(); }catch(e){ note.textContent="MapTiler didn't load — check the key and its allowed origins."; return; }
+  if(_curLayer!==kind) return; // user switched away while loading
+  _mt.resize();
+  const p=_lastPlace||{lat:53.2911,lon:-3.0647}; _mt.__marker.setLngLat([p.lon,p.lat]);
+  if(_mtLayer){ mtStop(); try{ _mt.removeLayer(_mtLayer.id); }catch(e){} _mtLayer=null; }
+  const W=window.maptilerweather;
+  const lay=kind==="mtrain"?new W.PrecipitationLayer({opacity:0.85}):kind==="mttemp"?new W.TemperatureLayer({opacity:0.7}):new W.WindLayer();
+  const labels=(_mt.getStyle().layers||[]).find(l=>l.type==="symbol"); // draw over land + sea, under place names
+  _mt.addLayer(lay, labels?labels.id:undefined);
+  _mtLayer=lay;
+  await lay.onSourceReadyAsync();
+  if(_mtLayer!==lay) return;
+  lay.setAnimationTime(Math.max(lay.getAnimationStart(),Math.min(lay.getAnimationEnd(),Date.now()/1000)));
+  const sl=$("#timeline"); if(sl){ sl.min=0; sl.max=Math.round((lay.getAnimationEnd()-lay.getAnimationStart())/3600); }
+  lay.on("tick",mtLabel); lay.on("animationTimeSet",mtLabel); mtLabel();
+  note.textContent=(kind==="mtrain"?"Rain forecast · mm/h":kind==="mttemp"?"Temperature forecast":"Wind forecast · particles flow downwind")+
+    " · MapTiler model data, stays sharp as you zoom · ▶ plays the next few days";
+}
 function selectLayer(kind){
   if((kind==="clouds"||kind==="wind") && !premiumUnlocked()){ openPro(); return; } // Premium layers
-  _curLayer=kind; stopPlay();
+  _curLayer=kind; stopPlay(); mtStop();
   document.querySelectorAll("[data-layer]").forEach(b=>b.classList.toggle("sel",b.dataset.layer===kind));
   if(_overlay){ _map.removeLayer(_overlay); _overlay=null; }
   const bottom=$("#radarBottom"), note=$("#mapNote");
+  if(isMT(kind)){ if(bottom) bottom.style.display=""; mtShow(kind); return; }
+  $("#mtmap").hidden=true; $("#map").hidden=false; _map.invalidateSize();
   if(kind==="precip"){ if(bottom) bottom.style.display="";
     if(_frames.length){ showFrame(_frameIdx); note.textContent="Precipitation radar · RainViewer (sharpest zoomed out; blurs as you zoom in)"; }
     else note.textContent="Radar unavailable right now.";
@@ -1888,8 +1943,9 @@ async function openRadar(){
   setTimeout(()=>_map.invalidateSize(),80);
   const lock=!premiumUnlocked();
   document.querySelectorAll("[data-layer]").forEach(b=>{ const k=b.dataset.layer;
-    const base=k==="precip"?"Precip":(k==="clouds"?"Clouds":"Wind");
-    b.textContent=(lock&&k!=="precip")?base+" 🔒":base; });
+    const base={precip:"Radar",mtrain:"Rain",mttemp:"Temp",clouds:"Clouds",wind:"Wind"}[k]||k;
+    b.textContent=(lock&&k!=="precip")?base+" 🔒":base;
+    if(b.hasAttribute("data-mt")) b.hidden=!MAPTILER_KEY; });
   if(lock && _curLayer!=="precip") _curLayer="precip";
   if(!_frames.length) await loadRadarFrames();
   selectLayer(_curLayer);
@@ -1897,9 +1953,13 @@ async function openRadar(){
 (function(){
   const rp=$("#radarPanel"); if(!rp) return;
   rp.querySelectorAll("[data-layer]").forEach(b=>b.addEventListener("click",()=>selectLayer(b.dataset.layer)));
-  const pb=$("#playBtn"); if(pb) pb.addEventListener("click",()=>{ _playing?stopPlay():playRadar(); });
-  const sl=$("#timeline"); if(sl) sl.addEventListener("input",()=>{ stopPlay(); showFrame(+sl.value); });
-  const rc=$("#recenterBtn"); if(rc) rc.addEventListener("click",()=>{ const p=_lastPlace||{lat:53.2911,lon:-3.0647}; if(_map) _map.setView([p.lat,p.lon],MAP_ZOOM); });
+  const pb=$("#playBtn"); if(pb) pb.addEventListener("click",()=>{
+    if(isMT(_curLayer)) _mtPlaying?mtStop():mtPlay(); else _playing?stopPlay():playRadar(); });
+  const sl=$("#timeline"); if(sl) sl.addEventListener("input",()=>{
+    if(isMT(_curLayer)){ mtStop(); if(_mtLayer) _mtLayer.setAnimationTime(_mtLayer.getAnimationStart()+(+sl.value)*3600); }
+    else { stopPlay(); showFrame(+sl.value); } });
+  const rc=$("#recenterBtn"); if(rc) rc.addEventListener("click",()=>{ const p=_lastPlace||{lat:53.2911,lon:-3.0647};
+    if(isMT(_curLayer)&&_mt) _mt.flyTo({center:[p.lon,p.lat],zoom:MAP_ZOOM-1}); else if(_map) _map.setView([p.lat,p.lon],MAP_ZOOM); });
 })();
 
 /* ================= boot ================= */

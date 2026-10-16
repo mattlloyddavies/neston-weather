@@ -21,11 +21,14 @@ dependencies, no API keys.
   and the iOS/Android wrapper, store assets and push server have been removed
 - **Radar** shows RainViewer's free tiles, which stop at zoom 7, so the map stretches them past that.
   The **Clouds** layer is an Open-Meteo cloud-cover grid, because RainViewer dropped its free satellite feed.
+- **MapTiler weather layers** (Rain, Temp, animated Wind) give a smooth ~4-day forecast that stays sharp at any zoom.
+  They use a free MapTiler key (`MAPTILER_KEY` in `index.html`), locked to this site's domain at cloud.maptiler.com.
 - **Warnings**: the Met Office and MeteoAlarm feeds block browser access, so the app
   links to the Met Office North West warnings page instead of showing alerts in-app.
 
 ## Sources
 - Forecast, humidity, air quality, pressure, UV, sun and tides: [Open-Meteo](https://open-meteo.com)
+- Map weather layers: [MapTiler Weather](https://www.maptiler.com/weather/)
 - Postcodes: [postcodes.io](https://postcodes.io) · Fixtures: ESPN public API · Radar: RainViewer
 
 ## Run it
